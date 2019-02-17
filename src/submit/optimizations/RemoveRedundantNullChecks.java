@@ -1,14 +1,13 @@
-package submit;
+package submit.optimizations;
 
 import flow.Flow;
 import java.util.*;
 import joeq.Compiler.Quad.Operand.RegisterOperand;
-import joeq.Class.jq_Class;
-import joeq.Main.Helper;
 import joeq.Compiler.Quad.*;
 
-import hw2.MySolver;
-import submit.MustReachNullChecks.*;
+import submit.analyses.MySolver;
+import submit.analyses.MustReachNullChecks;
+import submit.analyses.MustReachNullChecks.*;
 
 public class RemoveRedundantNullChecks extends Optimization {
 

@@ -1,4 +1,4 @@
-package submit;
+package submit.optimizations;
 
 import flow.Flow;
 import java.util.*;
@@ -7,9 +7,9 @@ import joeq.Class.jq_Class;
 import joeq.Main.Helper;
 import joeq.Compiler.Quad.*;
 
-import hw2.MySolver;
-import hw2.Faintness;
-import hw2.Faintness.*;
+import submit.analyses.MySolver;
+import submit.analyses.Faintness;
+import submit.analyses.Faintness.*;
 
 public class RemoveDeadCode extends Optimization {
 
