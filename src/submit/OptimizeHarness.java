@@ -40,7 +40,9 @@ public class OptimizeHarness {
             if (args[i].equals("--run-param")) {
                 runMainParams.add(args[i + 1]);
             }
+        }
 
+        for (int i = 0; i < args.length; i++) {
             if (args[i].equals("--extra-credit")) {
                 nullCheckOnly = false;
             }

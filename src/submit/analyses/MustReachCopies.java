@@ -1,35 +1,35 @@
-package submit;
+package submit.analyses;
 
 import joeq.Compiler.Quad.*;
 import flow.Flow;
 import java.util.*;
 import joeq.Compiler.Quad.Operand.RegisterOperand;
 
-public class MustReachNullChecks implements Flow.Analysis {
+public class MustReachCopies implements Flow.Analysis {
 
     /**
      * Class for the dataflow objects in the ReachingDefs analysis.
      * You are free to change this class or move it to another file.
      */
-    public static Set<String> universalSet = new TreeSet<String>();
-    public class CheckedRegistersFlowObject implements Flow.DataflowObject {
-        private Set<String> set;
+    public static Set<Integer> universalSet = new TreeSet<Integer>();
+    public class MustReachCopyFlowObject implements Flow.DataflowObject {
+        private Set<Integer> set;
         /**
          * Methods from the Flow.DataflowObject interface.
          * See Flow.java for the meaning of these methods.
          * These need to be filled in.
          */
-        public CheckedRegistersFlowObject()
+        public MustReachCopyFlowObject()
         {
-            set = new TreeSet<String>(universalSet);
+            set = new TreeSet<Integer>(universalSet);
         }
         public void setToTop() 
         {
-            set = new TreeSet<String>(universalSet);
+            set = new TreeSet<Integer>(universalSet);
         }
         public void setToBottom() 
         {
-            set = new TreeSet<String>();
+            set = new TreeSet<Integer>();
         }
         
         /**
@@ -37,29 +37,31 @@ public class MustReachNullChecks implements Flow.Analysis {
          */
         public void meetWith(Flow.DataflowObject o) 
         {
-            CheckedRegistersFlowObject t = (CheckedRegistersFlowObject)o;
+            MustReachCopyFlowObject t = (MustReachCopyFlowObject)o;
             this.set.retainAll(t.set);
         }
         public void copy(Flow.DataflowObject o) 
         {
-            CheckedRegistersFlowObject t = (CheckedRegistersFlowObject)o;
-            set = new TreeSet<String>(t.set);
+            MustReachCopyFlowObject t = (MustReachCopyFlowObject)o;
+            set = new TreeSet<Integer>(t.set);
         }
 
         /**
          * To be used by optomization 
          */ 
-        public boolean isChecked(String r)
+        public Set<Integer> intersection(Set<Integer> s)
         {
-            return set.contains(r);
+            Set<Integer> t = new TreeSet<Integer>(set);
+            t.retainAll(s);
+            return t;
         }
 
         @Override
         public boolean equals(Object o) 
         {
-            if (o instanceof CheckedRegistersFlowObject) 
+            if (o instanceof MustReachCopyFlowObject) 
             {
-                CheckedRegistersFlowObject a = (CheckedRegistersFlowObject) o;
+                MustReachCopyFlowObject a = (MustReachCopyFlowObject) o;
                 return set.equals(a.set);
             }
             return false;
@@ -79,8 +81,9 @@ public class MustReachNullChecks implements Flow.Analysis {
          */
         @Override
         public String toString() { return set.toString(); }
-        public void genCheck(String reg) { set.add(reg); }
-        public void killCheck(String reg) { set.remove(reg); }
+        public void genCopy(Integer copy) { set.add(copy); }
+        public void killCopy(Integer copy) { set.remove(copy); }
+        public void killCopies(Set<Integer> copies) { set.removeAll(copies); }
     }
 
     /**
@@ -91,8 +94,15 @@ public class MustReachNullChecks implements Flow.Analysis {
      * You are free to modify these fields, just make sure to
      * preserve the data printed by postprocess(), which relies on these.
      */
-    private CheckedRegistersFlowObject[] in, out;
-    private CheckedRegistersFlowObject entry, exit;
+    private MustReachCopyFlowObject[] in, out;
+    private MustReachCopyFlowObject entry, exit;
+    private static HashMap<String, TreeSet<Integer>> killSets;
+
+    public static boolean isValidCopy(Quad q){
+        return q.getOperator() instanceof Operator.Move 
+            && Operator.Move.getSrc(q) instanceof RegisterOperand
+            && Operator.Move.getDest(q) instanceof RegisterOperand;
+    }
 
     /**
      * This method initializes the datflow framework.
@@ -103,15 +113,35 @@ public class MustReachNullChecks implements Flow.Analysis {
         // this line must come first.
         // System.out.println("Method: "+cfg.getMethod().getName().toString());
 
-        // Build the universal set
+        // Build the universal set and kill sets
+        killSets = new HashMap<String, TreeSet<Integer> >();
         QuadIterator qit = new QuadIterator(cfg);
-        while (qit.hasNext()) {
+        while (qit.hasNext())
+        {
             Quad q = (Quad)qit.next();
-            for (RegisterOperand def : q.getDefinedRegisters()) {
-                universalSet.add(def.getRegister().toString());
-            }
-            for (RegisterOperand use : q.getUsedRegisters()) {
-                universalSet.add(use.getRegister().toString());
+            int id = q.getID();
+
+            if (isValidCopy(q)) {
+
+                universalSet.add(id);
+
+                for (RegisterOperand def : q.getUsedRegisters()) 
+                {
+                    String key = def.getRegister().toString();
+                    if(killSets.get(key) == null)  killSets.put(key, new TreeSet<Integer>());
+                    TreeSet<Integer> killSet = killSets.get(key);
+                    killSet.add(id);
+                    killSets.put(key, killSet);
+                }
+
+                for (RegisterOperand def : q.getDefinedRegisters()) 
+                {
+                    String key = def.getRegister().toString();
+                    if(killSets.get(key) == null)  killSets.put(key, new TreeSet<Integer>());
+                    TreeSet<Integer> killSet = killSets.get(key);
+                    killSet.add(id);
+                    killSets.put(key, killSet);
+                }
             }
         }
 
@@ -126,22 +156,22 @@ public class MustReachNullChecks implements Flow.Analysis {
         max += 1;
 
         // allocate the in and out arrays.
-        in = new CheckedRegistersFlowObject[max];
-        out = new CheckedRegistersFlowObject[max];
+        in = new MustReachCopyFlowObject[max];
+        out = new MustReachCopyFlowObject[max];
 
         // initialize the contents of in and out.
         qit = new QuadIterator(cfg);
         while (qit.hasNext()) {
             int id = qit.next().getID();
-            in[id] = new CheckedRegistersFlowObject();
-            out[id] = new CheckedRegistersFlowObject();
+            in[id] = new MustReachCopyFlowObject();
+            out[id] = new MustReachCopyFlowObject();
         }
 
         // initialize the entry and exit points.
-        transferfn.val = new CheckedRegistersFlowObject();
+        transferfn.val = new MustReachCopyFlowObject();
         
-        entry = new CheckedRegistersFlowObject();
-        exit = new CheckedRegistersFlowObject();
+        entry = new MustReachCopyFlowObject();
+        exit = new MustReachCopyFlowObject();
 
         entry.setToBottom(); // Boundary condition
     }
@@ -205,7 +235,7 @@ public class MustReachNullChecks implements Flow.Analysis {
     public void setOut(Quad q, Flow.DataflowObject value) {
         out[q.getID()].copy(value); 
     }
-    public Flow.DataflowObject newTempVar() { return new CheckedRegistersFlowObject(); }
+    public Flow.DataflowObject newTempVar() { return new MustReachCopyFlowObject(); }
 
     private TransferFunction transferfn = new TransferFunction ();
     public void processQuad(Quad q) {
@@ -216,17 +246,19 @@ public class MustReachNullChecks implements Flow.Analysis {
     
     /* The QuadVisitor that actually does the computation */
     public static class TransferFunction extends QuadVisitor.EmptyVisitor {
-        CheckedRegistersFlowObject val;
+        MustReachCopyFlowObject val;
         @Override
         public void visitQuad(Quad q) {
+
             for (RegisterOperand def : q.getDefinedRegisters()) {
-                val.killCheck(def.getRegister().toString());
+                Set<Integer> killSet = killSets.get(def.getRegister().toString());
+                if (killSet != null) {
+                    val.killCopies(killSet);
+                }
             }
 
-            if(q.getOperator() instanceof Operator.NullCheck){
-                for (RegisterOperand def : q.getUsedRegisters()) {
-                    val.genCheck(def.getRegister().toString());
-                }
+            if (isValidCopy(q)){
+                val.genCopy(q.getID()); // Ignore const in this analysis
             }
         }
     }

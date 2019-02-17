@@ -5,7 +5,10 @@ import joeq.Compiler.Quad.*;
 import joeq.Class.jq_Class;
 import joeq.Main.Helper;
 
-import submit.RemoveRedundantNullChecks.*;
+import submit.optimizations.RemoveRedundantNullChecks;
+import submit.optimizations.CopyPropagation;
+import submit.optimizations.RemoveDeadCode;
+import submit.optimizations.Optimization;
 
 public class Optimize {
     /*
@@ -17,8 +20,43 @@ public class Optimize {
             jq_Class classToOptimize = (jq_Class)Helper.load(optimizeFiles.get(i));
             // Run your optimization on each classes.
 
-            RemoveRedundantNullChecks redundantNullChecks = new RemoveRedundantNullChecks();
-            redundantNullChecks.optimizeClass(classToOptimize);
+            if (nullCheckOnly){
+                RemoveRedundantNullChecks redundantNullChecks = new RemoveRedundantNullChecks();
+                redundantNullChecks.optimizeClass(classToOptimize);
+            }
+            else
+            {
+                boolean modified = false;
+
+                Optimization copyPropagation = new CopyPropagation();
+                Optimization redundantNullChecks = new RemoveRedundantNullChecks();
+                Optimization deadCode = new RemoveDeadCode();
+
+                do {
+
+                    modified = false;
+                    
+                    if (copyPropagation.optimizeClass(classToOptimize)){
+                        modified = true;
+                    }
+
+                    if (deadCode.optimizeClass(classToOptimize)){
+                        modified = true;
+                    }
+
+                    if (redundantNullChecks.optimizeClass(classToOptimize)){
+                        modified = true;
+                    }
+                
+                } while(modified);
+            }
+
+            if (!nullCheckOnly){
+                CopyPropagation copyPropagation = new CopyPropagation();
+                copyPropagation.optimizeClass(classToOptimize);
+            }
+
+            //Helper.runPass(classToOptimize, new PrintCFG());
         }
     }
 }

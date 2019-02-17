@@ -7,8 +7,9 @@ import joeq.Class.jq_Class;
 import joeq.Main.Helper;
 import joeq.Compiler.Quad.*;
 
-import hw2.MySolver;
-import submit.MustReachNullChecks.*;
+import submit.analyses.MySolver;
+import submit.analyses.MustReachNullChecks;
+import submit.analyses.MustReachNullChecks.*;
 
 // some useful things to import. add any additional imports you need.
 
