@@ -27,19 +27,23 @@ public class RemoveDeadCode extends Optimization {
             Quad quad = iter.next();
 
             VarSet faintVars = (VarSet) faintAnalysis.getOut(quad);
-            boolean deadCode = false;
 
-            for (RegisterOperand def : quad.getDefinedRegisters()) 
+            if (quad.getDefinedRegisters().size() > 0)
             {
-            		if (faintVars.isFaint(def.getRegister().toString()))
-            		{
-            			deadCode = true;
-            		}
-            }
+                boolean deadCode = true;
 
-            if (deadCode) {
-                iter.remove();
-                modifiedFlowGraph = true;
+                for (RegisterOperand def : quad.getDefinedRegisters()) 
+                {
+                    if (!faintVars.isFaint(def.getRegister().toString()))
+                    {
+                        deadCode = false;
+                    }
+                }
+
+                if (deadCode) {
+                    iter.remove();
+                    modifiedFlowGraph = true;
+                }
             }
         }
     }
