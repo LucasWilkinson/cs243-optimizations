@@ -40,7 +40,8 @@ public class RemoveDeadCode extends Optimization {
                     }
                 }
 
-                if (deadCode) {
+                if (deadCode) 
+                {
                     iter.remove();
                     modifiedFlowGraph = true;
                 }
