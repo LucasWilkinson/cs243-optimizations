@@ -285,6 +285,7 @@ public class ConstantProp implements Flow.Analysis {
             if (isUndef(op)) {
                 val.setUndef(key);
             } else if (isConst(op)) {
+            		System.out.println("MoveConst");
                 val.setConst(key, getConst(op));
             } else {
                 val.setNAC(key);
@@ -297,6 +298,7 @@ public class ConstantProp implements Flow.Analysis {
             String key =   Operator.Binary.getDest(q).getRegister().toString();
             Operator opr = q.getOperator();
 
+			/*
             if (opr == Operator.Binary.ADD_I.INSTANCE) {
                 if (isNAC(op1) || isNAC(op2)) {
                     val.setNAC(key);
@@ -307,6 +309,17 @@ public class ConstantProp implements Flow.Analysis {
                 }
             } else {
                 val.setNAC(key);
+            }
+            */
+            
+            if (isNAC(op1) || isNAC(op2)) 
+            {
+                val.setNAC(key);
+            } else if (isUndef(op1) || isUndef(op2)) {
+                val.setUndef(key);
+            } else { // both must be constant!
+            		System.out.println("BinaryConst");
+                val.setConst(key, getConst(op1)+getConst(op2));
             }
         }
         @Override

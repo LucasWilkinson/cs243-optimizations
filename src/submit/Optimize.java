@@ -38,6 +38,9 @@ public class Optimize {
 
                     modified = false;
                     
+                    if (constantPropagation.optimizeClass(classToOptimize)){
+                    		modified = true;
+                    }
                     
                     if (copyPropagation.optimizeClass(classToOptimize)){
                         modified = true;
@@ -49,10 +52,6 @@ public class Optimize {
 
                     if (redundantNullChecks.optimizeClass(classToOptimize)){
                         modified = true;
-                    }
-                    
-                    if (constantPropagation.optimizeClass(classToOptimize)){
-                    		modified = true;
                     }
                     
                 
