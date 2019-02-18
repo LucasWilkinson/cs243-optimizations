@@ -19,6 +19,8 @@ public class ConstantPropagation extends Optimization {
         solver.registerAnalysis(constantProp);
         solver.visitCFG(cfg);
 
+		System.out.println("Fuck you!");
+
         // Generate copies map
         QuadIterator qit = new QuadIterator(cfg);
         while (qit.hasNext())
@@ -29,20 +31,27 @@ public class ConstantPropagation extends Optimization {
 			
 			if (q.getOperator() instanceof Operator.Move)
 			{
-				Operand op = (RegisterOperand) Operator.Move.getSrc(q);
+				Operand op = Operator.Move.getSrc(q);
 				
 				if (op instanceof RegisterOperand)
 				{
+					System.out.println("MM!");
 					RegisterOperand regop = (RegisterOperand) op;
 					
 					String key = regop.getRegister().toString();
 					
 					SingleCP scp = (SingleCP) ct.get(key);
 					
+					Integer hash = scp.hashCode();
+					
+					System.out.println(hash.toString());
+					
 					if (scp.isConst())
 					{
+						System.out.println("Modifying Move!");
 						IConstOperand c = new IConstOperand(scp.getConst());
 						Operator.Move.setSrc(q, c);
+						modifiedFlowGraph = true;
 					}
 				}
 			}
@@ -53,49 +62,70 @@ public class ConstantPropagation extends Optimization {
 				
 				if (opone instanceof RegisterOperand)
 				{
+					System.out.println("MB1!");
 					RegisterOperand regopone = (RegisterOperand) opone;
 					
 					String keyone = regopone.getRegister().toString();
 					SingleCP scpone = (SingleCP) ct.get(keyone);
 					
+					Integer hash = scpone.hashCode();
+					
+					System.out.println(hash.toString());
+					
 					if (scpone.isConst())
 					{
+						System.out.println("Modifying Binary1!");
 						IConstOperand c = new IConstOperand(scpone.getConst());
 						Operator.Binary.setSrc1(q, c);
+						modifiedFlowGraph = true;
 					}
 					
 				}
 				
 				if (optwo instanceof RegisterOperand)
 				{
+					System.out.println("MB2!");
 					RegisterOperand regoptwo = (RegisterOperand) optwo;
 					
 					String keytwo = regoptwo.getRegister().toString();
 					SingleCP scptwo = (SingleCP) ct.get(keytwo);
 					
+					Integer hash = scptwo.hashCode();
+					
+					System.out.println(hash.toString());
+					
 					if (scptwo.isConst())
 					{
+						System.out.println("Modifying Binary2!");
 						IConstOperand c = new IConstOperand(scptwo.getConst());
 						Operator.Binary.setSrc2(q, c);
+						modifiedFlowGraph = true;
 					}
 				}
 			}
 			else if (q.getOperator() instanceof Operator.Unary)
 			{
-				Operand op = (RegisterOperand) Operator.Unary.getSrc(q);
+				Operand op = Operator.Unary.getSrc(q);
 				
 				if (op instanceof RegisterOperand)
 				{
+					System.out.println("MU!");
 					RegisterOperand regop = (RegisterOperand) op;
 					
 					String key = regop.getRegister().toString();
 					
 					SingleCP scp = (SingleCP) ct.get(key);
 					
+					Integer hash = scp.hashCode();
+					
+					System.out.println(hash.toString());
+					
 					if (scp.isConst())
 					{
+						System.out.println("Modifying Unary!");
 						IConstOperand c = new IConstOperand(scp.getConst());
 						Operator.Unary.setSrc(q, c);
+						modifiedFlowGraph = true;
 					}
 				}
 			}
