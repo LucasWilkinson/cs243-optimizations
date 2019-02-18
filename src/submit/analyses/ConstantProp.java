@@ -308,7 +308,8 @@ public class ConstantProp implements Flow.Analysis {
             	    (opr == Operator.Binary.SUB_I.INSTANCE) ||
             	    (opr == Operator.Binary.MUL_I.INSTANCE) || 
             	    (opr == Operator.Binary.DIV_I.INSTANCE) || 
-            	    (opr == Operator.Binary.REM_I.INSTANCE))
+            	    (opr == Operator.Binary.REM_I.INSTANCE) ||
+            	    (opr == Operator.Binary.SHL_I.INSTANCE))
             {
                 if (isNAC(op1) || isNAC(op2)) 
                 {
@@ -339,6 +340,10 @@ public class ConstantProp implements Flow.Analysis {
                     else if (opr == Operator.Binary.REM_I.INSTANCE)
                     {
                     		val.setConst(key, getConst(op1)%getConst(op2));
+                    }
+                    else if (opr == Operator.Binary.SHL_I.INSTANCE)
+                    {
+                    		val.setConst(key, getConst(op1)<<getConst(op2));
                     }
                 }
             } 
