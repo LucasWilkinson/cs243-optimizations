@@ -42,9 +42,6 @@ public class RemoveDeadCode extends Optimization {
 
                 if (deadCode) 
                 {
-                		//System.out.println("Removing Dead Quad!");
-                		//Integer i = quad.getID();
-                		//System.out.println(i.toString());
                     iter.remove();
                     modifiedFlowGraph = true;
                 }
