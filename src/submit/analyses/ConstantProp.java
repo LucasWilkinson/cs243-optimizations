@@ -5,6 +5,7 @@ import java.util.*;
 import joeq.Compiler.Quad.*;
 import joeq.Compiler.Quad.Operand.*;
 import joeq.Main.Helper;
+import joeq.Interpreter.QuadInterpreter;
 
 public class ConstantProp implements Flow.Analysis {
 
@@ -165,9 +166,11 @@ public class ConstantProp implements Flow.Analysis {
 
     private ConstantPropTable[] in, out;
     private ConstantPropTable entry, exit;
+    
+    public QuadInterpreter qi;
 
     public void preprocess (ControlFlowGraph cfg) {
-        System.out.println("Method: "+cfg.getMethod().getName().toString());
+        //System.out.println("Method: "+cfg.getMethod().getName().toString());
         /* Generate initial conditions. */
         QuadIterator qit = new QuadIterator(cfg);
         int max = 0;
@@ -209,6 +212,9 @@ public class ConstantProp implements Flow.Analysis {
         for (int i=0; i < numargs; i++) {
             entry.setNAC("R"+i);
         }
+        
+        qi = new QuadInterpreter(cfg.getMethod());
+        
         //System.out.println("Initialization completed.");
     }
 
@@ -285,7 +291,6 @@ public class ConstantProp implements Flow.Analysis {
             if (isUndef(op)) {
                 val.setUndef(key);
             } else if (isConst(op)) {
-            		System.out.println("MoveConst");
                 val.setConst(key, getConst(op));
             } else {
                 val.setNAC(key);
@@ -298,29 +303,66 @@ public class ConstantProp implements Flow.Analysis {
             String key =   Operator.Binary.getDest(q).getRegister().toString();
             Operator opr = q.getOperator();
 
-			/*
-            if (opr == Operator.Binary.ADD_I.INSTANCE) {
-                if (isNAC(op1) || isNAC(op2)) {
+			
+            if ((opr == Operator.Binary.ADD_I.INSTANCE) ||
+            	    (opr == Operator.Binary.SUB_I.INSTANCE) ||
+            	    (opr == Operator.Binary.MUL_I.INSTANCE) || 
+            	    (opr == Operator.Binary.DIV_I.INSTANCE) || 
+            	    (opr == Operator.Binary.REM_I.INSTANCE))
+            {
+                if (isNAC(op1) || isNAC(op2)) 
+                {
                     val.setNAC(key);
-                } else if (isUndef(op1) || isUndef(op2)) {
+                } 
+                else if (isUndef(op1) || isUndef(op2)) 
+                {
                     val.setUndef(key);
-                } else { // both must be constant!
-                    val.setConst(key, getConst(op1)+getConst(op2));
+                } 
+                else 
+                { // both must be constant!
+                	   if (opr == Operator.Binary.ADD_I.INSTANCE)
+                	   {
+                    		val.setConst(key, getConst(op1)+getConst(op2));
+                    }
+                    else if (opr == Operator.Binary.SUB_I.INSTANCE)
+                    {
+                    		val.setConst(key, getConst(op1)-getConst(op2));
+                    }
+                    else if (opr == Operator.Binary.MUL_I.INSTANCE)
+                    {
+                    		val.setConst(key, getConst(op1)*getConst(op2));
+                    }
+                    else if (opr == Operator.Binary.DIV_I.INSTANCE)
+                    {
+                    		val.setConst(key, getConst(op1)/getConst(op2));
+                    }
+                    else if (opr == Operator.Binary.REM_I.INSTANCE)
+                    {
+                    		val.setConst(key, getConst(op1)%getConst(op2));
+                    }
                 }
-            } else {
+            } 
+            else 
+            {
                 val.setNAC(key);
             }
-            */
             
+            
+            /*
             if (isNAC(op1) || isNAC(op2)) 
             {
                 val.setNAC(key);
-            } else if (isUndef(op1) || isUndef(op2)) {
+            } 
+            else if (isUndef(op1) || isUndef(op2)) 
+            {
                 val.setUndef(key);
-            } else { // both must be constant!
-            		System.out.println("BinaryConst");
-                val.setConst(key, getConst(op1)+getConst(op2));
             }
+            else
+            {
+            		q.interpret(qi);
+            		val.setConst(key, (Integer) qi.getReturnValue());
+            }
+            */        
         }
         @Override
         public void visitUnary (Quad q) {

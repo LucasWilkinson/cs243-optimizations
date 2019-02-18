@@ -37,11 +37,11 @@ public class Optimize {
                 do {
 
                     modified = false;
-                    
+
                     if (constantPropagation.optimizeClass(classToOptimize)){
                     		modified = true;
                     }
-                    
+               
                     if (copyPropagation.optimizeClass(classToOptimize)){
                         modified = true;
                     }

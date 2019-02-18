@@ -19,8 +19,6 @@ public class ConstantPropagation extends Optimization {
         solver.registerAnalysis(constantProp);
         solver.visitCFG(cfg);
 
-		System.out.println("Fuck you!");
-
         // Generate copies map
         QuadIterator qit = new QuadIterator(cfg);
         while (qit.hasNext())
@@ -35,7 +33,7 @@ public class ConstantPropagation extends Optimization {
 				
 				if (op instanceof RegisterOperand)
 				{
-					System.out.println("MM!");
+					//System.out.println("MM!");
 					RegisterOperand regop = (RegisterOperand) op;
 					
 					String key = regop.getRegister().toString();
@@ -44,11 +42,13 @@ public class ConstantPropagation extends Optimization {
 					
 					Integer hash = scp.hashCode();
 					
-					System.out.println(hash.toString());
+					//System.out.println(hash.toString());
 					
 					if (scp.isConst())
 					{
 						System.out.println("Modifying Move!");
+						Integer i = q.getID();
+						System.out.println(i.toString());
 						IConstOperand c = new IConstOperand(scp.getConst());
 						Operator.Move.setSrc(q, c);
 						modifiedFlowGraph = true;
@@ -62,7 +62,7 @@ public class ConstantPropagation extends Optimization {
 				
 				if (opone instanceof RegisterOperand)
 				{
-					System.out.println("MB1!");
+					//System.out.println("MB1!");
 					RegisterOperand regopone = (RegisterOperand) opone;
 					
 					String keyone = regopone.getRegister().toString();
@@ -70,7 +70,7 @@ public class ConstantPropagation extends Optimization {
 					
 					Integer hash = scpone.hashCode();
 					
-					System.out.println(hash.toString());
+					//System.out.println(hash.toString());
 					
 					if (scpone.isConst())
 					{
@@ -84,7 +84,7 @@ public class ConstantPropagation extends Optimization {
 				
 				if (optwo instanceof RegisterOperand)
 				{
-					System.out.println("MB2!");
+					//System.out.println("MB2!");
 					RegisterOperand regoptwo = (RegisterOperand) optwo;
 					
 					String keytwo = regoptwo.getRegister().toString();
@@ -92,7 +92,7 @@ public class ConstantPropagation extends Optimization {
 					
 					Integer hash = scptwo.hashCode();
 					
-					System.out.println(hash.toString());
+					//System.out.println(hash.toString());
 					
 					if (scptwo.isConst())
 					{
@@ -109,7 +109,7 @@ public class ConstantPropagation extends Optimization {
 				
 				if (op instanceof RegisterOperand)
 				{
-					System.out.println("MU!");
+					//System.out.println("MU!");
 					RegisterOperand regop = (RegisterOperand) op;
 					
 					String key = regop.getRegister().toString();
@@ -118,7 +118,7 @@ public class ConstantPropagation extends Optimization {
 					
 					Integer hash = scp.hashCode();
 					
-					System.out.println(hash.toString());
+					//System.out.println(hash.toString());
 					
 					if (scp.isConst())
 					{
