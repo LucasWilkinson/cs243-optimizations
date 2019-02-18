@@ -46,9 +46,7 @@ public class ConstantPropagation extends Optimization {
 					
 					if (scp.isConst())
 					{
-						System.out.println("Modifying Move!");
-						Integer i = q.getID();
-						System.out.println(i.toString());
+						//System.out.println("Modifying Move!");
 						IConstOperand c = new IConstOperand(scp.getConst());
 						Operator.Move.setSrc(q, c);
 						modifiedFlowGraph = true;
@@ -74,7 +72,7 @@ public class ConstantPropagation extends Optimization {
 					
 					if (scpone.isConst())
 					{
-						System.out.println("Modifying Binary1!");
+						//System.out.println("Modifying Binary1!");
 						IConstOperand c = new IConstOperand(scpone.getConst());
 						Operator.Binary.setSrc1(q, c);
 						modifiedFlowGraph = true;
@@ -96,7 +94,7 @@ public class ConstantPropagation extends Optimization {
 					
 					if (scptwo.isConst())
 					{
-						System.out.println("Modifying Binary2!");
+						//System.out.println("Modifying Binary2!");
 						IConstOperand c = new IConstOperand(scptwo.getConst());
 						Operator.Binary.setSrc2(q, c);
 						modifiedFlowGraph = true;
@@ -122,7 +120,7 @@ public class ConstantPropagation extends Optimization {
 					
 					if (scp.isConst())
 					{
-						System.out.println("Modifying Unary!");
+						//System.out.println("Modifying Unary!");
 						IConstOperand c = new IConstOperand(scp.getConst());
 						Operator.Unary.setSrc(q, c);
 						modifiedFlowGraph = true;
