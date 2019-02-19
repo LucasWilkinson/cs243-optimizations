@@ -5,35 +5,38 @@ import joeq.Compiler.Quad.*;
 import flow.Flow;
 import java.util.*;
 import joeq.Compiler.Quad.Operand.RegisterOperand;
+
+import submit.analyses.AnticipatedExpressions;
+import submit.analyses.AnticipatedExpressions.*;
 /**
  * Skeleton class for implementing a reaching definition analysis
  * using the Flow.Analysis interface.
  */
-public class AnticipatedExpressions implements Flow.Analysis {
+public class UsedExpressions implements Flow.Analysis {
 
     /**
      * Class for the dataflow objects in the ReachingDefs analysis.
      * You are free to change this class or move it to another file.
      */
     public static Set<String> universalSet = new TreeSet<String>();
-    public class AnticipatedSet implements Flow.DataflowObject {
+    public class UsedSet implements Flow.DataflowObject {
         private Set<String> set;
         /**
          * Methods from the Flow.DataflowObject interface.
          * See Flow.java for the meaning of these methods.
          * These need to be filled in.
          */
-        public AnticipatedSet()
+        public UsedSet()
         {
-            set =  new TreeSet<String>(universalSet);
+            set =  new TreeSet<String>();
         }
         public void setToTop() 
         {
-            set = new TreeSet<String>(universalSet);
+            set = new TreeSet<String>();
         }
         public void setToBottom() 
         {
-            set = new TreeSet<String>();
+            set = new TreeSet<String>(universalSet);
         }
         
         /**
@@ -41,21 +44,21 @@ public class AnticipatedExpressions implements Flow.Analysis {
          */
         public void meetWith (Flow.DataflowObject o) 
         {
-            AnticipatedSet t = (AnticipatedSet)o;
-            this.set.retainAll(t.set);
+            UsedSet t = (UsedSet)o;
+            this.set.addAll(t.set);
         }
         public void copy (Flow.DataflowObject o) 
         {
-            AnticipatedSet t = (AnticipatedSet)o;
+            UsedSet t = (UsedSet)o;
             set = new TreeSet<String>(t.set);
         }
 
         @Override
         public boolean equals(Object o) 
         {
-            if (o instanceof AnticipatedSet) 
+            if (o instanceof UsedSet) 
             {
-                AnticipatedSet a = (AnticipatedSet) o;
+                UsedSet a = (UsedSet) o;
                 return set.equals(a.set);
             }
             return false;
@@ -93,30 +96,21 @@ public class AnticipatedExpressions implements Flow.Analysis {
      * You are free to modify these fields, just make sure to
      * preserve the data printed by postprocess(), which relies on these.
      */
-    private AnticipatedSet[] in, out;
-    private AnticipatedSet entry, exit;
+    private UsedSet[] in, out;
+    private UsedSet entry, exit;
     private static HashMap<String, TreeSet<String>> killSets;
+    private static Set<String>[] latest;
 
     public static boolean isValidExpression(Quad q) {
-        return (q.getOperator() instanceof Operator.Unary 
-            || q.getOperator() instanceof Operator.Binary);
+        return AnticipatedExpressions.isValidExpression(q);
     }
 
     public static String expressionString(Quad q) {
-        if (isValidExpression(q)) {
-            if (q.getOperator() instanceof Operator.Unary) {
-                return Operator.Unary.getDest(q).toString() 
-                    + q.getOperator().toString()
-                    + Operator.Unary.getSrc(q).toString();
-            } else {
-                return Operator.Binary.getDest(q).toString() 
-                    + q.getOperator().toString()
-                    + Operator.Binary.getSrc1(q).toString()
-                    + Operator.Binary.getSrc2(q).toString();
-            }
-        } else {
-            throw new RuntimeException("Invalid expression quad");
-        }
+        return AnticipatedExpressions.expressionString(q);
+    }
+
+    public void registerLatest(Set<String>[] latest){
+        this.latest = latest;
     }
 
     /**
@@ -126,19 +120,19 @@ public class AnticipatedExpressions implements Flow.Analysis {
      */
     public void preprocess(ControlFlowGraph cfg) {
         // this line must come first.
-        //System.out.println("Method: "+cfg.getMethod().getName().toString());
+        System.out.println("Method: "+cfg.getMethod().getName().toString());
         killSets = new HashMap<String, TreeSet<String> >();
 
         // allocate the in and out arrays.
-        in = new AnticipatedSet[cfg.getMaxQuadID() + 1];
-        out = new AnticipatedSet[cfg.getMaxQuadID() + 1];
+        in = new UsedSet[cfg.getMaxQuadID() + 1];
+        out = new UsedSet[cfg.getMaxQuadID() + 1];
 
         // initialize the contents of in and out.
         QuadIterator qit = new QuadIterator(cfg);
         while (qit.hasNext()) {
             int id = qit.next().getID();
-            in[id] = new AnticipatedSet();
-            out[id] = new AnticipatedSet();
+            in[id] = new UsedSet();
+            out[id] = new UsedSet();
         }
 
         qit = new QuadIterator(cfg);
@@ -163,12 +157,12 @@ public class AnticipatedExpressions implements Flow.Analysis {
         }
         
         // initialize the entry and exit points.
-        transferfn.val = new AnticipatedSet();
-        entry = new AnticipatedSet();
-        exit = new AnticipatedSet();
+        transferfn.val = new UsedSet();
+        entry = new UsedSet();
+        exit = new UsedSet();
 
         // Set boundary condition
-        exit.setToBottom(); 
+        exit.setToTop(); 
     }
 
     /**
@@ -238,7 +232,7 @@ public class AnticipatedExpressions implements Flow.Analysis {
 
         out[q.getID()].copy(value); 
     }
-    public Flow.DataflowObject newTempVar() { return new AnticipatedSet(); }
+    public Flow.DataflowObject newTempVar() { return new UsedSet(); }
 
     private TransferFunction transferfn = new TransferFunction ();
     public void processQuad(Quad q) {
@@ -249,24 +243,17 @@ public class AnticipatedExpressions implements Flow.Analysis {
     
     /* The QuadVisitor that actually does the computation */
     public static class TransferFunction extends QuadVisitor.EmptyVisitor {
-        AnticipatedSet val;
+        UsedSet val;
         @Override
         public void visitQuad(Quad q) {
             if (q.getDefinedRegisters() != null)
             {
-                for (RegisterOperand def : q.getDefinedRegisters()) 
-                {
-                    String key = def.getRegister().toString();
-                    Set<String> killSet = killSets.get(key);
-                    if (killSet != null){
-                        val.killExpressions(killSet);
-                    }
-                }
-
                 if (isValidExpression(q)) 
                 {
                     val.genExpression(expressionString(q));
                 }
+
+                val.killExpressions(latest[q.getID()]);
             }
         }
     }

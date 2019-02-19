@@ -122,7 +122,7 @@ public class AvailableExpressions implements Flow.Analysis {
      */
     public void preprocess(ControlFlowGraph cfg) {
         // this line must come first.
-        System.out.println("Method: "+cfg.getMethod().getName().toString());
+        //System.out.println("Method: "+cfg.getMethod().getName().toString());
         killSets = new HashMap<String, TreeSet<String> >();
 
         // get the amount of space we need to allocate for the in/out arrays.
@@ -153,7 +153,6 @@ public class AvailableExpressions implements Flow.Analysis {
             Quad q = (Quad)qit.next();
 
             if (isValidExpression(q)){
-                System.out.println(expressionString(q));
                 String exprString = expressionString(q);
 
                 universalSet.add(exprString);
@@ -188,14 +187,14 @@ public class AvailableExpressions implements Flow.Analysis {
      * @param cfg  Unused.
      */
     public void postprocess (ControlFlowGraph cfg) {
-        System.out.println("entry: " + entry.toString());
-        for (int i=1; i<in.length; i++) {
-            if (in[i] != null) {
-                System.out.println(i + " in:  " + in[i].toString());
-                System.out.println(i + " out: " + out[i].toString());
-            }
-        }
-        System.out.println("exit: " + exit.toString());
+        //System.out.println("entry: " + entry.toString());
+        //for (int i=1; i<in.length; i++) {
+        //    if (in[i] != null) {
+        //        System.out.println(i + " in:  " + in[i].toString());
+        //        System.out.println(i + " out: " + out[i].toString());
+        //    }
+        //}
+        //System.out.println("exit: " + exit.toString());
     }
 
     /**

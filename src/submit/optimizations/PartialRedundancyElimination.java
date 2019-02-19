@@ -2,6 +2,7 @@ package submit.optimizations;
 
 import flow.Flow;
 import java.util.*;
+import joeq.Class.jq_Type;
 import joeq.Compiler.Quad.Operand.RegisterOperand;
 import joeq.Compiler.Quad.*;
 
@@ -12,17 +13,17 @@ import submit.analyses.AvailableExpressions;
 import submit.analyses.AvailableExpressions.*;
 import submit.analyses.Postponable;
 import submit.analyses.Postponable.*;
+import submit.analyses.UsedExpressions;
+import submit.analyses.UsedExpressions.*;
 
 public class PartialRedundancyElimination extends Optimization {
 
-    public boolean supportLastQuad(BasicBlock bb){
+    public boolean supportedLastQuad(BasicBlock bb){
         Quad lastQuad = bb.getLastQuad();
         if (lastQuad != null) {
             Operator op = lastQuad.getOperator();
-            if (op instanceof Operator.Branch && !(op instanceof Operator.Ret)){
-                if ((op instanceof Operator.LookupSwitch) || (op instanceof Operator.TableSwitch)) {
-                    return false;
-                }
+            if ((op instanceof Operator.LookupSwitch) || (op instanceof Operator.TableSwitch)) {
+                return false;
             }
         }
         return true;
@@ -33,7 +34,7 @@ public class PartialRedundancyElimination extends Optimization {
         List<BasicBlock> preSuccessors      = pre.getSuccessors();
         List<BasicBlock> sucPredecessors    = suc.getPredecessors();
 
-        System.out.println("adding edge " + pre + " -> " + suc);
+        //System.out.println("adding edge " + pre + " -> " + suc);
 
         if (fallthrough) {
             preSuccessors.add(0, suc);
@@ -45,7 +46,7 @@ public class PartialRedundancyElimination extends Optimization {
 
         // Fix the branch quad if there is one
         Quad lastQuad = pre.getLastQuad();
-        if (lastQuad != null)
+        if (!fallthrough && lastQuad != null)
         {
             Operator op = lastQuad.getOperator();
             if (op instanceof Operator.Branch && !(op instanceof Operator.Ret)){
@@ -57,11 +58,11 @@ public class PartialRedundancyElimination extends Optimization {
                     Operator.IntIfCmp.setTarget(lastQuad, newTarget);
                 }else if (op instanceof Operator.Jsr){
                     Operator.Jsr.setTarget(lastQuad, newTarget);
-                }else if (op instanceof Operator.Jsr){
-                    Operator.Jsr.setTarget(lastQuad, newTarget);
+                }else{
+                    throw new RuntimeException("Unsupported branch");
                 }
 
-                System.out.println(lastQuad);  
+                //System.out.println(lastQuad);  
             }
         }
     }
@@ -72,6 +73,14 @@ public class PartialRedundancyElimination extends Optimization {
         List<BasicBlock> sucPredecessors    = suc.getPredecessors();
 
         boolean fallthrough = (preSuccessors.indexOf(suc) == 0);
+
+        Quad lastQuad = pre.getLastQuad();
+        if (lastQuad != null) {
+            Operator op = lastQuad.getOperator();
+            if (op instanceof Operator.Branch && preSuccessors.size() == 1) {
+                fallthrough = false;
+            }
+        }
 
         preSuccessors.remove(suc);
         sucPredecessors.remove(pre);
@@ -86,16 +95,24 @@ public class PartialRedundancyElimination extends Optimization {
         System.out.println("Method: "+cfg.getMethod().getName().toString());
 
         MySolver solver = new MySolver();
+        
         AnticipatedExpressions anticipation = new AnticipatedExpressions();
         AvailableExpressions available = new AvailableExpressions();
         Postponable postponable = new Postponable();
+        UsedExpressions used = new UsedExpressions();
+
         Set<Integer> nopQuadsToRemove = new TreeSet<Integer>();
 
-        System.out.println(cfg.fullDump());
+        //System.out.println("****************************** PRE ********************************");
+        //System.out.println(cfg.fullDump());
+        //System.out.println("*******************************************************************");
 
-        System.out.println("adding NOPs");
+        //System.out.println("adding NOPs");
 
-        // Preprocess graph adding basic blocks (wiht NOP quads which wil be removed later) on quads with multiple predcessors
+        /*
+         * Preprocess graph adding basic blocks (wiht NOP quads which wil be removed later) on quads with multiple predcessors
+         */
+
         ListIterator<BasicBlock> bbit = cfg.reversePostOrderIterator();
         while (bbit.hasNext())
         {
@@ -109,9 +126,9 @@ public class PartialRedundancyElimination extends Optimization {
                 
                 for (BasicBlock oldPred : predcessorsTemp) {
 
-                    System.out.println(predcessorsTemp);
+                    //System.out.println(predcessorsTemp);
 
-                    if (supportLastQuad(oldPred)){
+                    if (supportedLastQuad(oldPred)){
 
                         // Create NOP block
                         BasicBlock newBB = cfg.createBasicBlock(1, 1, 1, null);
@@ -127,7 +144,9 @@ public class PartialRedundancyElimination extends Optimization {
             }
         }
 
-        System.out.println(cfg.fullDump());
+        //System.out.println("****************************** MOD ********************************");
+        //System.out.println(cfg.fullDump());
+        //System.out.println("*******************************************************************");
 
         solver.registerAnalysis(anticipation);
         solver.visitCFG(cfg);
@@ -203,8 +222,121 @@ public class PartialRedundancyElimination extends Optimization {
             //System.out.println(latest[q.getID()]);
         }
 
+        used.registerLatest(latest);
+        solver.registerAnalysis(used);
+        solver.visitCFG(cfg);
+
+        /*
+         *  Find placement points
+         */ 
+
+        HashMap<String, Quad> stringToQuad = new HashMap<String, Quad>();
+        HashMap<String, Operand.RegisterOperand> stringToOperand = new HashMap<String, Operand.RegisterOperand>();
+
+        qit = new QuadIterator(cfg);
+        while (qit.hasNext()) {
+            Quad q = qit.next();
+            if (Postponable.isValidExpression(q)) {
+                if (stringToQuad.get(Postponable.expressionString(q)) == null) { 
+                    stringToQuad.put(Postponable.expressionString(q), q);
+                }
+            }
+        }
+
+        List<BasicBlock> bbToAddTo = new Vector<BasicBlock>();
+        List<Quad>       quadToAdd = new Vector<Quad>();
+
+        int maxBeforeAddingTemps = cfg.getMaxQuadID();
+
+        qit = new QuadIterator(cfg);
+        while (qit.hasNext())
+        {
+            Quad q = qit.next();
+            UsedSet usedOut = (UsedSet) used.getOut(q);
+            Set<String> placementSet = usedOut.getSet();
+            placementSet.retainAll(latest[q.getID()]);
+
+            if (placementSet.size() > 0){
+                for (String expr : placementSet){
+                    if (stringToOperand.get(expr) == null) { 
+                        List<RegisterOperand> regs = stringToQuad.get(expr).getDefinedRegisters();
+                        if (regs.size() != 1) {
+                            throw new RuntimeException("Ah dont know what to do");
+                        }
+                        jq_Type regType = regs.get(0).getType();
+                        stringToOperand.put(expr, cfg.getRegisterFactory().makeTempRegOp(regType));
+                    }
+
+                    Quad newTemp = stringToQuad.get(expr).copy(cfg.getNewQuadID());
+                    List<RegisterOperand> regs = newTemp.getDefinedRegisters();
+                    
+                    if (regs.size() != 1) {
+                        throw new RuntimeException("Ah dont know what to do");
+                    }
+
+                    RegisterOperand tempReg = stringToOperand.get(expr);
+
+                    if (newTemp.getOperator() instanceof Operator.Unary) {
+                        Operator.Unary.setDest(newTemp, tempReg);
+                    } else {
+                        Operator.Binary.setDest(newTemp, tempReg);
+                    }
+
+                    System.out.println(tempReg);
+                    System.out.println(newTemp);
+
+                    bbToAddTo.add(qit.getCurrentBasicBlock());
+                    quadToAdd.add(newTemp);
+                }
+
+                System.out.println(placementSet);
+            }
+        }
+
+        for (int i = 0; i < bbToAddTo.size(); i++){
+            bbToAddTo.get(i).addQuad(0, quadToAdd.get(i)); 
+        }
+
+        /*
+         *  Replace uses
+         */ 
+
+        qit = new QuadIterator(cfg);
+        while (qit.hasNext())
+        {
+            Quad q = qit.next();
+
+            if (q.getID() > maxBeforeAddingTemps){
+                continue;
+            }
+
+            UsedSet usedOut = (UsedSet) used.getOut(q);
+            Set<String> usedOutSet = usedOut.getSet();
+            Set<String>  eUse = new TreeSet<String>();
+            Set<String> replacementSet = new TreeSet<String>(UsedExpressions.universalSet);
+            
+            if (Postponable.isValidExpression(q)) {
+                eUse.add(Postponable.expressionString(q));
+            }
+
+            if (latest[q.getID()] != null){
+                replacementSet.removeAll(latest[q.getID()]); // !latest
+            }
+            replacementSet.addAll(usedOutSet); // u used.out[b]
+            replacementSet.retainAll(eUse);    // n eUse
+
+            if (replacementSet.size() == 1){
+                System.out.println(replacementSet);
+            }else if (replacementSet.size() > 1){
+                throw new RuntimeException("Ah dont know what to do");
+            }
+        }
+
+        /*
+         *  Clean up unused added quads 
+         */
+
         // Remove added NOP commands
-        System.out.println("removing NOPs");
         qit = new QuadIterator(cfg);
         while (qit.hasNext()) {
             Quad q = qit.next();
@@ -240,6 +372,8 @@ public class PartialRedundancyElimination extends Optimization {
         }  
         cfg.removeUnreachableBasicBlocks();   
 
-        System.out.println(cfg.fullDump());  
+        //System.out.println("****************************** POST *******************************");
+        //System.out.println(cfg.fullDump());
+        //System.out.println("*******************************************************************");
     }
 }
