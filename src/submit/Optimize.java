@@ -10,6 +10,7 @@ import submit.optimizations.CopyPropagation;
 import submit.optimizations.RemoveDeadCode;
 import submit.optimizations.PartialRedundancyElimination;
 import submit.optimizations.Optimization;
+import submit.optimizations.ConstantPropagation;
 
 public class Optimize {
     /*
@@ -33,11 +34,16 @@ public class Optimize {
                 Optimization redundantNullChecks = new RemoveRedundantNullChecks();
                 Optimization deadCode = new RemoveDeadCode();
                 Optimization pre = new PartialRedundancyElimination();
+                Optimization constantPropagation = new ConstantPropagation();
 
                 do {
 
                     modified = false;
-                    
+
+                    if (constantPropagation.optimizeClass(classToOptimize)){
+                    		modified = true;
+                    }
+               
                     if (copyPropagation.optimizeClass(classToOptimize)){
                         modified = true;
                     }
@@ -53,6 +59,7 @@ public class Optimize {
                     if (redundantNullChecks.optimizeClass(classToOptimize)){
                         modified = true;
                     }
+                    
                 
                 } while(modified);
             }
