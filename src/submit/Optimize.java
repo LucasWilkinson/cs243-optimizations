@@ -8,6 +8,7 @@ import joeq.Main.Helper;
 import submit.optimizations.RemoveRedundantNullChecks;
 import submit.optimizations.CopyPropagation;
 import submit.optimizations.RemoveDeadCode;
+import submit.optimizations.PartialRedundancyElimination;
 import submit.optimizations.Optimization;
 
 public class Optimize {
@@ -31,6 +32,7 @@ public class Optimize {
                 Optimization copyPropagation = new CopyPropagation();
                 Optimization redundantNullChecks = new RemoveRedundantNullChecks();
                 Optimization deadCode = new RemoveDeadCode();
+                Optimization pre = new PartialRedundancyElimination();
 
                 do {
 
@@ -41,6 +43,10 @@ public class Optimize {
                     }
 
                     if (deadCode.optimizeClass(classToOptimize)){
+                        modified = true;
+                    }
+
+                    if (pre.optimizeClass(classToOptimize)){
                         modified = true;
                     }
 
@@ -56,7 +62,7 @@ public class Optimize {
                 copyPropagation.optimizeClass(classToOptimize);
             }
 
-            //Helper.runPass(classToOptimize, new PrintCFG());
+            Helper.runPass(classToOptimize, new PrintCFG());
         }
     }
 }
