@@ -26,6 +26,11 @@ public class MustReachBoundsChecks implements Flow.Analysis {
             CheckedArraySet a = (CheckedArraySet) o;
 			set = new TreeSet<String>(a.set);
         }
+        
+       public void set(String s) 
+       { 
+       		set.add(s);
+       }
     }
 
     public static class CheckerSet implements Flow.DataflowObject {
@@ -37,11 +42,13 @@ public class MustReachBoundsChecks implements Flow.Analysis {
         public static void reset() { core.clear(); }
         public static void register(String key) {
             core.add(key);
+            map.put(key, new CheckedArraySet());
         }
 
         public CheckerSet() 
         {
-            map = new TreeMap<String, CheckedArraySet>();
+            map = new TreeMap<String, CheckedArraySet>(universalSet);
+            
             for (String key : core) {
                 map.put(key, new CheckedArraySet());
             }
@@ -73,10 +80,14 @@ public class MustReachBoundsChecks implements Flow.Analysis {
         }
 
         public void copy (Flow.DataflowObject o) {
-            ConstantPropTable a = (ConstantPropTable) o;
-            for (Map.Entry<String, SingleCP> e : a.map.entrySet()) {
-                SingleCP mine = map.get(e.getKey());
-                mine.copy(e.getValue());
+            CheckerSet a = (CheckerSet) o;
+            core.reset();
+            for (String key : a.core) 
+            {
+            		register(key);
+            		
+                CheckedArraySet mine = map.get(key);
+                mine.copy(a.get(key));
             }		
         }
 
@@ -85,41 +96,29 @@ public class MustReachBoundsChecks implements Flow.Analysis {
             return map.toString();
         }
 
-        public SingleCP get(String key) {
+        public CheckedArraySet get(String key) {
             return map.get(key);
         }
-
-        @Override
-        public boolean equals (Object o) {
-            if (o instanceof ConstantPropTable) {
-                return map.equals (((ConstantPropTable)o).map);
-            }
-            return false;
+        
+        public void add(String key, String s) {
+            get(key).set(s);
         }
+
+		public void killChecker(String key) 
+		{
+			this.core.remove(key);
+		}
+       
         @Override
         public int hashCode() {
             return map.hashCode();
         }
 
-        public void setUndef(String key) {
-            get(key).setUndef();
-        }
-        public void setConst(String key, int val) {
-            get(key).setConst(val);
-        }
-        public void setNAC(String key) {
-            get(key).setNAC();
-        }
-        public void transfer(String key, String src) {
-            get(key).copy(get(src));
-        }
     }
 
-    private ConstantPropTable[] in, out;
-    private ConstantPropTable entry, exit;
-    
-    public QuadInterpreter qi;
-
+    private CheckerSet[] in, out;
+    private CheckerSet entry, exit;
+ 
     public void preprocess (ControlFlowGraph cfg) {
         //System.out.println("Method: "+cfg.getMethod().getName().toString());
         /* Generate initial conditions. */
@@ -130,41 +129,35 @@ public class MustReachBoundsChecks implements Flow.Analysis {
             if (x > max) max = x;
         }
         max += 1;
-        in = new ConstantPropTable[max];
-        out = new ConstantPropTable[max];
+        in = new CheckerSet[max];
+        out = new CheckerSet[max];
         qit = new QuadIterator(cfg);
 
-        ConstantPropTable.reset();
+        CheckerSet.reset();
 
         /* Arguments are always there. */
         int numargs = cfg.getMethod().getParamTypes().length;
         for (int i = 0; i < numargs; i++) {
-            ConstantPropTable.register("R"+i);
+            CheckerSet.register("R"+i);
         }
 
         while (qit.hasNext()) {
             Quad q = qit.next();
             for (RegisterOperand def : q.getDefinedRegisters()) {
-                ConstantPropTable.register(def.getRegister().toString());
+                CheckerSet.register(def.getRegister().toString());
             }
             for (RegisterOperand use : q.getUsedRegisters()) {
-                ConstantPropTable.register(use.getRegister().toString());
+                CheckerSet.register(use.getRegister().toString());
             }
         }
 
-        entry = new ConstantPropTable();
-        exit = new ConstantPropTable();
-        transferfn.val = new ConstantPropTable();
+        entry = new CheckerSet();
+        exit = new CheckerSet();
+        transferfn.val = new CheckerSet();
         for (int i=0; i<in.length; i++) {
-            in[i] = new ConstantPropTable();
-            out[i] = new ConstantPropTable();
+            in[i] = new CheckerSet();
+            out[i] = new CheckerSet();
         }
-
-        for (int i=0; i < numargs; i++) {
-            entry.setNAC("R"+i);
-        }
-        
-        qi = new QuadInterpreter(cfg.getMethod());
         
         //System.out.println("Initialization completed.");
     }
@@ -218,7 +211,7 @@ public class MustReachBoundsChecks implements Flow.Analysis {
         exit.copy(value); 
     }
 
-    public Flow.DataflowObject newTempVar() { return new ConstantPropTable(); }
+    public Flow.DataflowObject newTempVar() { return new CheckerSet(); }
 
     /* Actually perform the transfer operation on the relevant
      * quad. */
@@ -233,201 +226,48 @@ public class MustReachBoundsChecks implements Flow.Analysis {
     /* The QuadVisitor that actually does the computation */
     public static class TransferFunction extends QuadVisitor.EmptyVisitor
     {
-        ConstantPropTable val;
-        @Override
-        public void visitMove (Quad q) {
-            Operand op = Operator.Move.getSrc(q);
-            String key = Operator.Move.getDest(q).getRegister().toString();
-
-            if (isUndef(op)) {
-                val.setUndef(key);
-            } else if (isConst(op)) {
-                val.setConst(key, getConst(op));
-            } else {
-                val.setNAC(key);
-            }
-        }
-        @Override
-        public void visitBinary (Quad q) {
-            Operand op1 =  Operator.Binary.getSrc1(q);
-            Operand op2 =  Operator.Binary.getSrc2(q);
-            String key =   Operator.Binary.getDest(q).getRegister().toString();
-            Operator opr = q.getOperator();
-
-			
-            if ((opr == Operator.Binary.ADD_I.INSTANCE) ||
-            	    (opr == Operator.Binary.SUB_I.INSTANCE) ||
-            	    (opr == Operator.Binary.MUL_I.INSTANCE) || 
-            	    (opr == Operator.Binary.DIV_I.INSTANCE) || 
-            	    (opr == Operator.Binary.REM_I.INSTANCE) ||
-            	    (opr == Operator.Binary.SHL_I.INSTANCE))
-            {
-                if (isNAC(op1) || isNAC(op2)) 
+        CheckerSet val;
+        
+        public void visitQuad(Quad q) 
+        {
+        		if(q.getOperator() instanceof Operator.BoundsCheck)
+        		{
+        			Operand array = Operator.BoundsCheck.getRef(q);
+        			Operand index = Operator.BoundsCheck.getIndex(q);
+        			
+        			if(array instanceof RegisterOperand)
+        			{
+        				if (index instanceof RegisterOperand)
+        				{
+        					val.add(index.getRegister().toString(), array.getRegister().toString())
+        				}
+        				else if (index instanceof IConstOperand)
+        				{
+        					val.add(index.getValue().toString(), array.getRegister().toString())
+        				}
+        			}
+        			else if(array instanceof AConstOperand)
+        			{
+        				if (index instanceof RegisterOperand)
+        				{
+        					val.add(index.getRegister().toString(), array.getValue().toString())
+        				}
+        				else if (index instanceof IConstOperand)
+        				{
+        					val.add(index.getValue().toString(), array.getValue().toString())
+        				}
+        			}
+        		}
+        		else
+        		{
+        			//kill the defined reg if they are checkers
+        			for (RegisterOperand def : q.getDefinedRegisters()) 
                 {
-                    val.setNAC(key);
-                } 
-                else if (isUndef(op1) || isUndef(op2)) 
-                {
-                    val.setUndef(key);
-                } 
-                else 
-                { // both must be constant!
-                	   if (opr == Operator.Binary.ADD_I.INSTANCE)
-                	   {
-                    		val.setConst(key, getConst(op1)+getConst(op2));
-                    }
-                    else if (opr == Operator.Binary.SUB_I.INSTANCE)
-                    {
-                    		val.setConst(key, getConst(op1)-getConst(op2));
-                    }
-                    else if (opr == Operator.Binary.MUL_I.INSTANCE)
-                    {
-                    		val.setConst(key, getConst(op1)*getConst(op2));
-                    }
-                    else if (opr == Operator.Binary.DIV_I.INSTANCE)
-                    {
-                    		val.setConst(key, getConst(op1)/getConst(op2));
-                    }
-                    else if (opr == Operator.Binary.REM_I.INSTANCE)
-                    {
-                    		val.setConst(key, getConst(op1)%getConst(op2));
-                    }
-                    else if (opr == Operator.Binary.SHL_I.INSTANCE)
-                    {
-                    		val.setConst(key, getConst(op1)<<getConst(op2));
-                    }
+                    String key = def.getRegister().toString();
+                    
+   				    val.killChecker(key);
                 }
-            } 
-            else 
-            {
-                val.setNAC(key);
-            }
-            
-            
-            /*
-            if (isNAC(op1) || isNAC(op2)) 
-            {
-                val.setNAC(key);
-            } 
-            else if (isUndef(op1) || isUndef(op2)) 
-            {
-                val.setUndef(key);
-            }
-            else
-            {
-            		q.interpret(qi);
-            		val.setConst(key, (Integer) qi.getReturnValue());
-            }
-            */        
+        		}
         }
-        @Override
-        public void visitUnary (Quad q) {
-            Operand op = Operator.Unary.getSrc(q);
-            String key = Operator.Unary.getDest(q).getRegister().toString();
-            Operator opr = q.getOperator();
-
-            if (opr == Operator.Unary.NEG_I.INSTANCE) {
-                if (isUndef(op)) {
-                    val.setUndef(key);
-                } else if (isConst(op)) {
-                    val.setConst(key, -getConst(op));
-                } else {
-                    val.setNAC(key);
-                }
-            } else {
-                val.setNAC(key);
-            }
-        }
-
-        @Override
-        public void visitALoad(Quad q) {
-            String key = Operator.ALoad.getDest(q).getRegister().toString();
-            val.setNAC(key);
-        }
-
-        @Override
-        public void visitALength(Quad q) {
-            String key = Operator.ALength.getDest(q).getRegister().toString();
-            val.setNAC(key);
-        }
-
-        @Override
-        public void visitGetstatic(Quad q) {
-            String key = Operator.Getstatic.getDest(q).getRegister().toString();
-            val.setNAC(key);
-        }
-
-        @Override
-        public void visitGetfield(Quad q) {
-            String key = Operator.Getfield.getDest(q).getRegister().toString();
-            val.setNAC(key);
-        }
-
-        @Override
-        public void visitInstanceOf(Quad q) {
-            String key = Operator.InstanceOf.getDest(q).getRegister().toString();
-            val.setNAC(key);
-        }
-
-        @Override
-        public void visitNew(Quad q) {
-            String key = Operator.New.getDest(q).getRegister().toString();
-            val.setNAC(key);
-        }
-
-        @Override
-        public void visitNewArray(Quad q) {
-            String key = Operator.NewArray.getDest(q).getRegister().toString();
-            val.setNAC(key);
-        }
-
-        @Override
-        public void visitInvoke(Quad q) {
-            RegisterOperand op = Operator.Invoke.getDest(q);
-            if (op != null) {
-                String key = op.getRegister().toString();
-                val.setNAC(key);
-            }
-        }
-
-        @Override
-        public void visitJsr(Quad q) {
-            String key = Operator.Jsr.getDest(q).getRegister().toString();
-            val.setNAC(key);
-        }
-
-        @Override
-        public void visitCheckCast(Quad q) {
-            String key = Operator.CheckCast.getDest(q).getRegister().toString();
-            val.setNAC(key);
-        }
-
-        private boolean isUndef (Operand op) {
-            return (op instanceof RegisterOperand && 
-                    val.get(((RegisterOperand)op).getRegister().toString()).isUndef());
-        }
-
-        private boolean isConst (Operand op) {
-            return (op instanceof IConstOperand) || 
-            (op instanceof RegisterOperand && 
-                    val.get(((RegisterOperand)op).getRegister().toString()).isConst());
-        }
-
-        private boolean isNAC (Operand op) {
-            return (op instanceof RegisterOperand && 
-                    val.get(((RegisterOperand)op).getRegister().toString()).isNAC());
-        }
-
-        private int getConst (Operand op) {
-            if (op instanceof IConstOperand) {
-                return ((IConstOperand)op).getValue();
-            }
-            if (op instanceof RegisterOperand) {
-                SingleCP o = val.get(((RegisterOperand)op).getRegister().toString());
-                if (o.state == 1)
-                    return o.getConst();
-            }
-            throw new IllegalArgumentException("Tried to getConst a non-Const!");
-        }
-    }
+	}
 }
