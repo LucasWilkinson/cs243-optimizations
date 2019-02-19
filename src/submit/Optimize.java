@@ -38,25 +38,31 @@ public class Optimize {
 
                 do {
 
+                    System.out.println("**************** Optimization pass *****************");
+
                     modified = false;
 
-                    if (constantPropagation.optimizeClass(classToOptimize)){
-                    		modified = true;
-                    }
-               
-                    if (copyPropagation.optimizeClass(classToOptimize)){
-                        modified = true;
-                    }
+                    //if (constantPropagation.optimizeClass(classToOptimize)){
+                    //    modified = true;
+                    //}
 
                     if (deadCode.optimizeClass(classToOptimize)){
+                        System.out.println("dead modified the graph");
                         modified = true;
                     }
 
                     if (pre.optimizeClass(classToOptimize)){
+                        System.out.println("pre the graph");
                         modified = true;
                     }
 
                     if (redundantNullChecks.optimizeClass(classToOptimize)){
+                        System.out.println("null checks the graph");
+                        modified = true;
+                    }
+
+                    if (copyPropagation.optimizeClass(classToOptimize)){
+                        System.out.println("copy prop modified the graph");
                         modified = true;
                     }
                     
@@ -68,8 +74,6 @@ public class Optimize {
                 CopyPropagation copyPropagation = new CopyPropagation();
                 copyPropagation.optimizeClass(classToOptimize);
             }
-
-            Helper.runPass(classToOptimize, new PrintCFG());
         }
     }
 }

@@ -120,7 +120,7 @@ public class UsedExpressions implements Flow.Analysis {
      */
     public void preprocess(ControlFlowGraph cfg) {
         // this line must come first.
-        System.out.println("Method: "+cfg.getMethod().getName().toString());
+        //System.out.println("Method: "+cfg.getMethod().getName().toString());
         killSets = new HashMap<String, TreeSet<String> >();
 
         // allocate the in and out arrays.

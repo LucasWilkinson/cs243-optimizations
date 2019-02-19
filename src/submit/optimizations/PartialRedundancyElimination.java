@@ -92,7 +92,7 @@ public class PartialRedundancyElimination extends Optimization {
 
         //System.out.println("Method: "+cfg.getMethod().getName().toString());
 
-        System.out.println("Method: "+cfg.getMethod().getName().toString());
+        //System.out.println("Method: "+cfg.getMethod().getName().toString());
 
         MySolver solver = new MySolver();
         
@@ -260,9 +260,7 @@ public class PartialRedundancyElimination extends Optimization {
                 for (String expr : placementSet){
                     if (stringToOperand.get(expr) == null) { 
                         List<RegisterOperand> regs = stringToQuad.get(expr).getDefinedRegisters();
-                        if (regs.size() != 1) {
-                            throw new RuntimeException("Ah dont know what to do");
-                        }
+                        if (regs.size() != 1) { throw new RuntimeException("Ah dont know what to do"); }
                         jq_Type regType = regs.get(0).getType();
                         stringToOperand.put(expr, cfg.getRegisterFactory().makeTempRegOp(regType));
                     }
@@ -270,11 +268,9 @@ public class PartialRedundancyElimination extends Optimization {
                     Quad newTemp = stringToQuad.get(expr).copy(cfg.getNewQuadID());
                     List<RegisterOperand> regs = newTemp.getDefinedRegisters();
                     
-                    if (regs.size() != 1) {
-                        throw new RuntimeException("Ah dont know what to do");
-                    }
+                    if (regs.size() != 1) { throw new RuntimeException("Ah dont know what to do"); }
 
-                    RegisterOperand tempReg = stringToOperand.get(expr);
+                    RegisterOperand tempReg = (RegisterOperand) stringToOperand.get(expr).copy();
 
                     if (newTemp.getOperator() instanceof Operator.Unary) {
                         Operator.Unary.setDest(newTemp, tempReg);
@@ -282,19 +278,20 @@ public class PartialRedundancyElimination extends Optimization {
                         Operator.Binary.setDest(newTemp, tempReg);
                     }
 
-                    System.out.println(tempReg);
-                    System.out.println(newTemp);
+                    //System.out.println(tempReg);
+                    //System.out.println(newTemp);
 
                     bbToAddTo.add(qit.getCurrentBasicBlock());
                     quadToAdd.add(newTemp);
                 }
 
-                System.out.println(placementSet);
+                //System.out.println(placementSet);
             }
         }
 
         for (int i = 0; i < bbToAddTo.size(); i++){
             bbToAddTo.get(i).addQuad(0, quadToAdd.get(i)); 
+            modifiedFlowGraph = true;
         }
 
         /*
@@ -312,7 +309,7 @@ public class PartialRedundancyElimination extends Optimization {
 
             UsedSet usedOut = (UsedSet) used.getOut(q);
             Set<String> usedOutSet = usedOut.getSet();
-            Set<String>  eUse = new TreeSet<String>();
+            Set<String> eUse = new TreeSet<String>();
             Set<String> replacementSet = new TreeSet<String>(UsedExpressions.universalSet);
             
             if (Postponable.isValidExpression(q)) {
@@ -325,10 +322,24 @@ public class PartialRedundancyElimination extends Optimization {
             replacementSet.addAll(usedOutSet); // u used.out[b]
             replacementSet.retainAll(eUse);    // n eUse
 
-            if (replacementSet.size() == 1){
-                System.out.println(replacementSet);
-            }else if (replacementSet.size() > 1){
+            //System.out.println(replacementSet);
+
+            if (replacementSet.size() > 1){
                 throw new RuntimeException("Ah dont know what to do");
+            }
+
+            for (String expr : replacementSet) {
+                RegisterOperand src = stringToOperand.get(expr);
+                jq_Type regType = src.getType();
+
+                List<RegisterOperand> dstRegs = q.getDefinedRegisters();
+                if (dstRegs.size() != 1) { throw new RuntimeException("Ah dont know what to do"); }
+
+                Operator.Move moveType = Operator.Move.getMoveOp(regType);
+                Quad copyTemp = Operator.Move.create(cfg.getNewQuadID(), moveType, (RegisterOperand) dstRegs.get(0).copy(), src.copy());
+
+                int index = qit.getCurrentBasicBlock().getQuadIndex(q);
+                qit.getCurrentBasicBlock().replaceQuad(index, copyTemp);
             }
         }
 
