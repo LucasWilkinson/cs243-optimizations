@@ -56,10 +56,11 @@ public class Optimize {
                         modified = true;
                     }
                     
+                    
                     if (boundsChecks.optimizeClass(classToOptimize)){
                     		modified = true;
                     	}
-                    
+                   
                 
                 } while(modified);
             }

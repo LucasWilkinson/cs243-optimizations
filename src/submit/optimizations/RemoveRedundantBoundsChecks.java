@@ -25,7 +25,8 @@ public class RemoveRedundantBoundsChecks extends Optimization {
         {
             Quad quad = iter.next();
 
-            if(quad.getOperator() instanceof Operator.BoundsCheck){
+            if(quad.getOperator() instanceof Operator.BoundsCheck)
+            {
                 CheckerSet checkedRegisters = (CheckerSet) mustReachBoundsChecks.getIn(quad);
                 
                 boolean checked = false;

@@ -14,26 +14,39 @@ public class MustReachBoundsChecks implements Flow.Analysis {
 
         public CheckedArraySet() 
         { 
-        		set = new TreeSet<String>(); 
+        		set = new TreeSet<String>(universalSet); 
         	}
 
-        public void setToTop() { set = new TreeSet<String>(); };
-        public void setToBottom() { set = new TreeSet<String>(universalSet); };
+        public void setToTop() { set = new TreeSet<String>(universalSet); };
+        public void setToBottom() { set = new TreeSet<String>(); };
 
-        public void meetWith (Flow.DataflowObject o) {
+        public void meetWith (Flow.DataflowObject o) 
+        {
             CheckedArraySet a = (CheckedArraySet)o;
             
-            this.set.addAll(a.set);
+            set.retainAll(a.set);
         }
 
-        public void copy (Flow.DataflowObject o) {
+        public void copy (Flow.DataflowObject o) 
+        {
             CheckedArraySet a = (CheckedArraySet) o;
 			set = new TreeSet<String>(a.set);
+        }
+        
+        public boolean equals (Object o)
+        {
+        		CheckedArraySet a = (CheckedArraySet) o;
+        		return set.equals(a.set);
         }
         
        public void set(String s) 
        { 
        		set.add(s);
+       }
+       
+       public void kill(String s)
+       {
+       		set.remove(s);
        }
        
        public boolean hasArray(String s)
@@ -48,7 +61,6 @@ public class MustReachBoundsChecks implements Flow.Analysis {
         /* 'core' is used to keep track of which variables we need to
          * track */
         private static Set<String> core = new HashSet<String>();
-        public static Set<String> universalCore;
         
         public static void reset() { core.clear(); }
         public static void register(String key) {
@@ -81,22 +93,33 @@ public class MustReachBoundsChecks implements Flow.Analysis {
         public void meetWith(Flow.DataflowObject o) 
         {
             CheckerSet a = (CheckerSet) o;
-            
-            //clean out arrays for non intersected
-            
-            core.retainAll(a.core);	
+           	
+            for (Map.Entry<String, CheckedArraySet> e : a.map.entrySet()) 
+            {
+                CheckedArraySet mine = map.get(e.getKey());
+                mine.meetWith(e.getValue());
+            }	 
+           
         }
 
         public void copy (Flow.DataflowObject o) 
         {
-            CheckerSet a = (CheckerSet) o;
-            core = new HashSet<String>(a.core);
-            
-            for (String key : a.core) 
+       	 	CheckerSet a = (CheckerSet) o;
+       	 	
+            for (Map.Entry<String, CheckedArraySet> e : a.map.entrySet()) 
             {
-                CheckedArraySet mine = map.get(key);
-                mine.copy(a.get(key));
-            }		
+                CheckedArraySet mine = map.get(e.getKey());
+                mine.copy(e.getValue());
+            }	
+        }
+        
+        public boolean equals (Object o) 
+        {
+        		if (o instanceof CheckerSet) 
+        		{
+        			return map.equals (((CheckerSet)o).map);
+        		}
+        		return false;
         }
 
         @Override
@@ -104,23 +127,38 @@ public class MustReachBoundsChecks implements Flow.Analysis {
             return map.toString();
         }
 
-        public CheckedArraySet get(String key) {
+        public CheckedArraySet get(String key) 
+        {
             return map.get(key);
         }
         
-        public void add(String key, String s) {
+        public void addArray(String key, String s) 
+        {
             get(key).set(s);
+        }
+        
+        public void removeArray(String key, String s)
+        {
+        		get(key).kill(s);
+        }
+        
+        public void removeArrayFromMap(String s)
+        {
+        		for (Map.Entry<String, CheckedArraySet> e : map.entrySet()) 
+            {
+                CheckedArraySet mine = map.get(e.getKey());
+                mine.kill(s);
+            }	
         }
 
 		public void killChecker(String key) 
 		{
-			//clean out arrays
-			
-			core.remove(key);
+			get(key).setToTop();
 		}
        
         @Override
-        public int hashCode() {
+        public int hashCode() 
+        {
             return map.hashCode();
         }
 
@@ -143,30 +181,50 @@ public class MustReachBoundsChecks implements Flow.Analysis {
         out = new CheckerSet[max];
         qit = new QuadIterator(cfg);
 
-		
         CheckerSet.reset();
 	
-		Set<String> s = new HashSet<String>();
-		CheckerSet.universalCore = s;
+		Set<String> s = new TreeSet<String>();
+		CheckedArraySet.universalSet = s;
 		
         int numargs = cfg.getMethod().getParamTypes().length;
         for (int i = 0; i < numargs; i++) {
             CheckerSet.register("R"+i);
-            CheckerSet.universalCore.add("R"+i);
+            s.add("R"+i);
         }
 		
-        while (qit.hasNext()) {
+        while (qit.hasNext()) 
+        {
             Quad q = qit.next();
-            for (RegisterOperand def : q.getDefinedRegisters()) {
-                CheckerSet.register(def.getRegister().toString());
-                CheckerSet.universalCore.add(def.getRegister().toString());
-            }
-            for (RegisterOperand use : q.getUsedRegisters()) {
-                CheckerSet.register(use.getRegister().toString());
-                CheckerSet.universalCore.add(use.getRegister().toString());
-            }
+            for (Operand def : q.getAllOperands())
+            {
+            		if(def instanceof RegisterOperand)
+            		{
+            			RegisterOperand regdef = (RegisterOperand) def;
+            			CheckerSet.register(regdef.getRegister().toString());
+            		}
+            		else if(def instanceof IConstOperand)
+            		{
+            			IConstOperand constdef = (IConstOperand) def;
+            			Integer c = constdef.getValue();
+            			CheckerSet.register(c.toString());
+            		}
+            		else if(def instanceof AConstOperand)
+            		{
+            			AConstOperand aconstdef = (AConstOperand) def;
+            			if (aconstdef.getWrapped() != null)
+            			{
+	            			String a = aconstdef.getWrapped().toString();
+	            			s.add(a);
+	            		}
+            		}
+            	}
+            	
+            	if(q.getOperator() instanceof Operator.NewArray)
+            	{
+            		RegisterOperand reg = Operator.NewArray.getDest(q);
+            		s.add(reg.getRegister().toString());
+            	}
         }
-		
 		
         entry = new CheckerSet();
         exit = new CheckerSet();
@@ -188,7 +246,7 @@ public class MustReachBoundsChecks implements Flow.Analysis {
         }
         System.out.println("exit: "+exit.toString());
         */
-        System.out.println("Finished Bounds Check!");
+        //System.out.println("Finished Bounds Check!");
     }
 
     /* Is this a forward dataflow analysis? */
@@ -260,31 +318,40 @@ public class MustReachBoundsChecks implements Flow.Analysis {
         				if (index instanceof RegisterOperand)
         				{
         					RegisterOperand regindex = (RegisterOperand) index;
-        					val.add(regindex.getRegister().toString(), regarray.getRegister().toString());
+        					val.addArray(regindex.getRegister().toString(), regarray.getRegister().toString());
         				}
         				else if (index instanceof IConstOperand)
         				{
         					IConstOperand constindex = (IConstOperand) index;
         					Integer c = constindex.getValue();
-        					val.add(c.toString(), regarray.getRegister().toString());
+        					val.addArray(c.toString(), regarray.getRegister().toString());
         				}
         			}
         			else if(array instanceof AConstOperand)
         			{
         				AConstOperand constarray = (AConstOperand) array;
         				
-        				if (index instanceof RegisterOperand)
+        				if (constarray.getWrapped() != null)
         				{
-        				    RegisterOperand regindex = (RegisterOperand) index;
-        					val.add(regindex.getRegister().toString(), constarray.getValue().toString());
-        				}
-        				else if (index instanceof IConstOperand)
-        				{
-        					IConstOperand constindex = (IConstOperand) index;
-        					Integer c = constindex.getValue();
-        					val.add(c.toString(), constarray.getValue().toString());
-        				}
+	        				if (index instanceof RegisterOperand)
+	        				{
+	        				    RegisterOperand regindex = (RegisterOperand) index;
+	        					val.addArray(regindex.getRegister().toString(), constarray.getWrapped().toString());
+	        				}
+	        				else if (index instanceof IConstOperand)
+	        				{
+	        					IConstOperand constindex = (IConstOperand) index;
+	        					Integer c = constindex.getValue();
+	        					val.addArray(c.toString(), constarray.getWrapped().toString());
+	        				}
+	        			}
         			}
+        		}
+        		else if(q.getOperator() instanceof Operator.NewArray)
+        		{
+        			RegisterOperand reg = Operator.NewArray.getDest(q);
+        			
+        			val.removeArrayFromMap(reg.getRegister().toString());
         		}
         		else
         		{
