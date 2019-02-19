@@ -105,12 +105,10 @@ public class AnticipatedExpressions implements Flow.Analysis {
     public static String expressionString(Quad q) {
         if (isValidExpression(q)) {
             if (q.getOperator() instanceof Operator.Unary) {
-                return Operator.Unary.getDest(q).toString() 
-                    + q.getOperator().toString()
+                return q.getOperator().toString()
                     + Operator.Unary.getSrc(q).toString();
             } else {
-                return Operator.Binary.getDest(q).toString() 
-                    + q.getOperator().toString()
+                return q.getOperator().toString()
                     + Operator.Binary.getSrc1(q).toString()
                     + Operator.Binary.getSrc2(q).toString();
             }
