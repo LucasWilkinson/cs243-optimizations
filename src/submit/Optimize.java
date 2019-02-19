@@ -6,6 +6,7 @@ import joeq.Class.jq_Class;
 import joeq.Main.Helper;
 
 import submit.optimizations.RemoveRedundantNullChecks;
+import submit.optimizations.RemoveRedundantBoundsChecks;
 import submit.optimizations.CopyPropagation;
 import submit.optimizations.RemoveDeadCode;
 import submit.optimizations.Optimization;
@@ -33,6 +34,7 @@ public class Optimize {
                 Optimization redundantNullChecks = new RemoveRedundantNullChecks();
                 Optimization deadCode = new RemoveDeadCode();
                 Optimization constantPropagation = new ConstantPropagation();
+                Optimization boundsChecks = new RemoveRedundantBoundsChecks();
 
                 do {
 
@@ -53,6 +55,10 @@ public class Optimize {
                     if (redundantNullChecks.optimizeClass(classToOptimize)){
                         modified = true;
                     }
+                    
+                    if (boundsChecks.optimizeClass(classToOptimize)){
+                    		modified = true;
+                    	}
                     
                 
                 } while(modified);

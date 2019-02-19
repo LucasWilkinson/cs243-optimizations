@@ -10,11 +10,15 @@ public class MustReachBoundsChecks implements Flow.Analysis {
 
     public static class CheckedArraySet implements Flow.DataflowObject {
         private Set<String> set;
+        private static Set<String> universalSet;
 
-        public CheckedArraySet() { set = new TreeSet<String>() }
+        public CheckedArraySet() 
+        { 
+        		set = new TreeSet<String>(); 
+        	}
 
-        public void setToTop() { set = new TreeSet<String>() }
-        public void setToBottom() { set = new TreeSet<String>(universalSet) }
+        public void setToTop() { set = new TreeSet<String>(); };
+        public void setToBottom() { set = new TreeSet<String>(universalSet); };
 
         public void meetWith (Flow.DataflowObject o) {
             CheckedArraySet a = (CheckedArraySet)o;
@@ -31,6 +35,11 @@ public class MustReachBoundsChecks implements Flow.Analysis {
        { 
        		set.add(s);
        }
+       
+       public boolean hasArray(String s)
+       {
+       		return set.contains(s);
+       }
     }
 
     public static class CheckerSet implements Flow.DataflowObject {
@@ -39,17 +48,16 @@ public class MustReachBoundsChecks implements Flow.Analysis {
         /* 'core' is used to keep track of which variables we need to
          * track */
         private static Set<String> core = new HashSet<String>();
-        private static Set<String> universalCore;
+        public static Set<String> universalCore;
         
         public static void reset() { core.clear(); }
         public static void register(String key) {
             core.add(key);
-            map.put(key, new CheckedArraySet());
         }
 
         public CheckerSet() 
         {
-            map = new TreeMap<String, CheckedArraySet>(universalCore);
+            map = new TreeMap<String, CheckedArraySet>();
             
             for (String key : core) {
                 map.put(key, new CheckedArraySet());
@@ -58,8 +66,6 @@ public class MustReachBoundsChecks implements Flow.Analysis {
 
         public void setToTop() 
         {
-        		core = new HashSet<String>(universalCore);
-        		
             for (String key : core) {
                 map.get(key).setToTop();
             }
@@ -67,8 +73,6 @@ public class MustReachBoundsChecks implements Flow.Analysis {
 
         public void setToBottom() 
         {
-            core = new HashSet<String>();
-        		
             for (String key : core) {
                 map.get(key).setToBottom();
             }
@@ -78,16 +82,18 @@ public class MustReachBoundsChecks implements Flow.Analysis {
         {
             CheckerSet a = (CheckerSet) o;
             
-            this.core.retainAll(a.core);	
+            //clean out arrays for non intersected
+            
+            core.retainAll(a.core);	
         }
 
-        public void copy (Flow.DataflowObject o) {
+        public void copy (Flow.DataflowObject o) 
+        {
             CheckerSet a = (CheckerSet) o;
-            core.reset();
+            core = new HashSet<String>(a.core);
+            
             for (String key : a.core) 
             {
-            		register(key);
-            		
                 CheckedArraySet mine = map.get(key);
                 mine.copy(a.get(key));
             }		
@@ -108,7 +114,9 @@ public class MustReachBoundsChecks implements Flow.Analysis {
 
 		public void killChecker(String key) 
 		{
-			this.core.remove(key);
+			//clean out arrays
+			
+			core.remove(key);
 		}
        
         @Override
@@ -135,15 +143,18 @@ public class MustReachBoundsChecks implements Flow.Analysis {
         out = new CheckerSet[max];
         qit = new QuadIterator(cfg);
 
+		
         CheckerSet.reset();
-
-        /* Arguments are always there. */
+	
+		Set<String> s = new HashSet<String>();
+		CheckerSet.universalCore = s;
+		
         int numargs = cfg.getMethod().getParamTypes().length;
         for (int i = 0; i < numargs; i++) {
             CheckerSet.register("R"+i);
             CheckerSet.universalCore.add("R"+i);
         }
-
+		
         while (qit.hasNext()) {
             Quad q = qit.next();
             for (RegisterOperand def : q.getDefinedRegisters()) {
@@ -155,7 +166,8 @@ public class MustReachBoundsChecks implements Flow.Analysis {
                 CheckerSet.universalCore.add(use.getRegister().toString());
             }
         }
-
+		
+		
         entry = new CheckerSet();
         exit = new CheckerSet();
         transferfn.val = new CheckerSet();
@@ -176,6 +188,7 @@ public class MustReachBoundsChecks implements Flow.Analysis {
         }
         System.out.println("exit: "+exit.toString());
         */
+        System.out.println("Finished Bounds Check!");
     }
 
     /* Is this a forward dataflow analysis? */
@@ -242,24 +255,34 @@ public class MustReachBoundsChecks implements Flow.Analysis {
         			
         			if(array instanceof RegisterOperand)
         			{
+        				RegisterOperand regarray = (RegisterOperand) array;
+        				
         				if (index instanceof RegisterOperand)
         				{
-        					val.add(index.getRegister().toString(), array.getRegister().toString())
+        					RegisterOperand regindex = (RegisterOperand) index;
+        					val.add(regindex.getRegister().toString(), regarray.getRegister().toString());
         				}
         				else if (index instanceof IConstOperand)
         				{
-        					val.add(index.getValue().toString(), array.getRegister().toString())
+        					IConstOperand constindex = (IConstOperand) index;
+        					Integer c = constindex.getValue();
+        					val.add(c.toString(), regarray.getRegister().toString());
         				}
         			}
         			else if(array instanceof AConstOperand)
         			{
+        				AConstOperand constarray = (AConstOperand) array;
+        				
         				if (index instanceof RegisterOperand)
         				{
-        					val.add(index.getRegister().toString(), array.getValue().toString())
+        				    RegisterOperand regindex = (RegisterOperand) index;
+        					val.add(regindex.getRegister().toString(), constarray.getValue().toString());
         				}
         				else if (index instanceof IConstOperand)
         				{
-        					val.add(index.getValue().toString(), array.getValue().toString())
+        					IConstOperand constindex = (IConstOperand) index;
+        					Integer c = constindex.getValue();
+        					val.add(c.toString(), constarray.getValue().toString());
         				}
         			}
         		}
