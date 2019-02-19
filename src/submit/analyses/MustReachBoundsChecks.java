@@ -39,6 +39,8 @@ public class MustReachBoundsChecks implements Flow.Analysis {
         /* 'core' is used to keep track of which variables we need to
          * track */
         private static Set<String> core = new HashSet<String>();
+        private static Set<String> universalCore;
+        
         public static void reset() { core.clear(); }
         public static void register(String key) {
             core.add(key);
@@ -47,7 +49,7 @@ public class MustReachBoundsChecks implements Flow.Analysis {
 
         public CheckerSet() 
         {
-            map = new TreeMap<String, CheckedArraySet>(universalSet);
+            map = new TreeMap<String, CheckedArraySet>(universalCore);
             
             for (String key : core) {
                 map.put(key, new CheckedArraySet());
@@ -56,7 +58,7 @@ public class MustReachBoundsChecks implements Flow.Analysis {
 
         public void setToTop() 
         {
-        		core = new HashSet<String>(universalSet);
+        		core = new HashSet<String>(universalCore);
         		
             for (String key : core) {
                 map.get(key).setToTop();
@@ -139,15 +141,18 @@ public class MustReachBoundsChecks implements Flow.Analysis {
         int numargs = cfg.getMethod().getParamTypes().length;
         for (int i = 0; i < numargs; i++) {
             CheckerSet.register("R"+i);
+            CheckerSet.universalCore.add("R"+i);
         }
 
         while (qit.hasNext()) {
             Quad q = qit.next();
             for (RegisterOperand def : q.getDefinedRegisters()) {
                 CheckerSet.register(def.getRegister().toString());
+                CheckerSet.universalCore.add(def.getRegister().toString());
             }
             for (RegisterOperand use : q.getUsedRegisters()) {
                 CheckerSet.register(use.getRegister().toString());
+                CheckerSet.universalCore.add(use.getRegister().toString());
             }
         }
 
