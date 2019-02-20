@@ -44,11 +44,11 @@ public class Optimize {
 
                 //addToSubs.optimizeClass(classToOptimize);
                 
-               //while(removeGoTo.optimizeClass(classToOptimize)) {}
+               while(removeGoTo.optimizeClass(classToOptimize)) {}
                 
-                removeGoTo.optimizeClass(classToOptimize);
-                System.out.println("Time one");
-                Helper.runPass(classToOptimize, new PrintCFG());
+                //removeGoTo.optimizeClass(classToOptimize);
+                //System.out.println("Time one");
+                //Helper.runPass(classToOptimize, new PrintCFG());
                 //removeGoTo.optimizeClass(classToOptimize);
                 //removeGoTo.optimizeClass(classToOptimize);
                 //removeGoTo.optimizeClass(classToOptimize);
