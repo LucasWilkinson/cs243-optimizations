@@ -43,6 +43,20 @@ public class Optimize {
                 Optimization removeGoTo = new RemoveGoTos();
 
                 //addToSubs.optimizeClass(classToOptimize);
+                
+               //while(removeGoTo.optimizeClass(classToOptimize)) {}
+                
+                removeGoTo.optimizeClass(classToOptimize);
+                System.out.println("Time one");
+                Helper.runPass(classToOptimize, new PrintCFG());
+                //removeGoTo.optimizeClass(classToOptimize);
+                //removeGoTo.optimizeClass(classToOptimize);
+                //removeGoTo.optimizeClass(classToOptimize);
+                //removeGoTo.optimizeClass(classToOptimize);
+                //removeGoTo.optimizeClass(classToOptimize);
+                //removeGoTo.optimizeClass(classToOptimize);
+                //System.out.println("Time two");
+                //Helper.runPass(classToOptimize, new PrintCFG());
 
                 while(copyPropagation.optimizeClass(classToOptimize)) {}
                 while(deadCode.optimizeClass(classToOptimize)) {}
@@ -74,18 +88,7 @@ public class Optimize {
 
                 while(copyPropagation.optimizeClass(classToOptimize)) {}
                 while(deadCode.optimizeClass(classToOptimize)) {}
-                
-                //while(removeGoTo.optimizeClass(classToOptimize)) {}
-                
-                removeGoTo.optimizeClass(classToOptimize);
-                removeGoTo.optimizeClass(classToOptimize);
-                removeGoTo.optimizeClass(classToOptimize);
-                removeGoTo.optimizeClass(classToOptimize);
-                //removeGoTo.optimizeClass(classToOptimize);
-                //removeGoTo.optimizeClass(classToOptimize);
-                //removeGoTo.optimizeClass(classToOptimize);
-                Helper.runPass(classToOptimize, new PrintCFG());
-
+               
                 redundantNullChecks.optimizeClass(classToOptimize);
                 boundsChecks.optimizeClass(classToOptimize);
             }

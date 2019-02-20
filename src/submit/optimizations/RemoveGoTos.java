@@ -18,7 +18,8 @@ public class RemoveGoTos extends Optimization
 
         QuadIterator iter = new QuadIterator(cfg);
         
-        int quadIndex = 0;
+        Integer quadIndex = 0;
+        Integer quadID = 0;
         boolean modified = false;
         BasicBlock modifier = cfg.entry();
 
@@ -31,8 +32,8 @@ public class RemoveGoTos extends Optimization
             		modifier = iter.getCurrentBasicBlock();
 				quadIndex = iter.getCurrentBasicBlock().getQuadIndex(quad);
 				
-				Integer id = quad.getID();
-				System.out.println(id.toString());
+				quadID = quad.getID();
+				System.out.println(quadID.toString());
 				
 				modified = true;
 				break;
@@ -62,6 +63,8 @@ public class RemoveGoTos extends Optimization
 	    			bbm = bb;
 	    		}  
 	    		
+	    		modifier.removeQuad(quadIndex); 
+	    		
 	    		//change successors
     			modifier.removeAllSuccessors();
     			
@@ -71,8 +74,14 @@ public class RemoveGoTos extends Optimization
     			{
     				modifier.addSuccessor(bbs);
     			}
+			
+	    		Quad lastquad = modifier.getLastQuad();
+	    		Integer lastquadindex = modifier.getQuadIndex(lastquad);
 	    		
-	    		modifier.removeQuad(quadIndex); 
+	    		Quad newlast = lastquad.copy(quadID);
+
+	    		modifier.removeQuad(lastquadindex);
+	    		modifier.appendQuad(newlast);
 	    		
 	    		//change predecessors of bb
     			bbm.removePredecessor(modifier);
@@ -80,6 +89,7 @@ public class RemoveGoTos extends Optimization
 			cfg.removeUnreachableBasicBlocks();
 			
 	    		modifiedFlowGraph = true;
+	    	
 	    	}
     }
 }
