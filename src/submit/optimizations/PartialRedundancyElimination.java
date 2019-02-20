@@ -248,6 +248,8 @@ public class PartialRedundancyElimination extends Optimization {
 
         int maxBeforeAddingTemps = cfg.getMaxQuadID();
 
+        boolean modified = false;
+
         qit = new QuadIterator(cfg);
         while (qit.hasNext())
         {
@@ -290,8 +292,11 @@ public class PartialRedundancyElimination extends Optimization {
         }
 
         for (int i = 0; i < bbToAddTo.size(); i++){
+
+            //System.out.println(quadToAdd.get(i));
             bbToAddTo.get(i).addQuad(0, quadToAdd.get(i)); 
             modifiedFlowGraph = true;
+            modified = true;
         }
 
         /*
@@ -332,6 +337,8 @@ public class PartialRedundancyElimination extends Optimization {
                 RegisterOperand src = stringToOperand.get(expr);
                 jq_Type regType = src.getType();
 
+                //System.out.println(q);
+
                 List<RegisterOperand> dstRegs = q.getDefinedRegisters();
                 if (dstRegs.size() != 1) { throw new RuntimeException("Ah dont know what to do"); }
 
@@ -340,6 +347,8 @@ public class PartialRedundancyElimination extends Optimization {
 
                 int index = qit.getCurrentBasicBlock().getQuadIndex(q);
                 qit.getCurrentBasicBlock().replaceQuad(index, copyTemp);
+
+               // System.out.println(q);
             }
         }
 
@@ -383,8 +392,10 @@ public class PartialRedundancyElimination extends Optimization {
         }  
         cfg.removeUnreachableBasicBlocks();   
 
-        //System.out.println("****************************** POST *******************************");
-        //System.out.println(cfg.fullDump());
-        //System.out.println("*******************************************************************");
+        //if (modified) {
+        //    System.out.println("****************************** POST *******************************");
+        //    System.out.println(cfg.fullDump());
+        //    System.out.println("*******************************************************************");
+        //}      
     }
 }

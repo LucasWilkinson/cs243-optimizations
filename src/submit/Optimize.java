@@ -12,6 +12,7 @@ import submit.optimizations.RemoveDeadCode;
 import submit.optimizations.PartialRedundancyElimination;
 import submit.optimizations.Optimization;
 import submit.optimizations.ConstantPropagation;
+import submit.optimizations.AddsToSubs;
 
 public class Optimize {
     /*
@@ -37,6 +38,12 @@ public class Optimize {
                 Optimization pre = new PartialRedundancyElimination();
                 Optimization constantPropagation = new ConstantPropagation();
                 Optimization boundsChecks = new RemoveRedundantBoundsChecks();
+                Optimization addToSubs = new AddsToSubs();
+
+                addToSubs.optimizeClass(classToOptimize);
+
+                while(copyPropagation.optimizeClass(classToOptimize)) {}
+                while(deadCode.optimizeClass(classToOptimize)) {}
 
                 do {
 
@@ -44,8 +51,8 @@ public class Optimize {
 
                     modified = false;
 
-                    if (constantPropagation.optimizeClass(classToOptimize)){
-                        //System.out.println("constant prop modified the graph");
+                    if (pre.optimizeClass(classToOptimize)){
+                        //System.out.println("pre modified the graph");
                         modified = true;
                     }
 
@@ -54,32 +61,21 @@ public class Optimize {
                         modified = true;
                     }
 
-                    if (pre.optimizeClass(classToOptimize)){
-                        //System.out.println("pre modified the graph");
-                        modified = true;
-                    }
-
-                    if (redundantNullChecks.optimizeClass(classToOptimize)){
-                        //System.out.println("null checks modified the graph");
-                        modified = true;
-                    }
-
                     if (copyPropagation.optimizeClass(classToOptimize)){
                         //System.out.println("copy prop modified the graph");
                         modified = true;
-                    }
-                    
-                    if (boundsChecks.optimizeClass(classToOptimize)){
-                        //System.out.println("bounds checks modified the graph");
-                    	modified = true;
                     }
                    
                     //Helper.runPass(classToOptimize, new PrintCFG());
 
                 } while(modified);
-            }
 
-            //Helper.runPass(classToOptimize, new PrintCFG());
+                while(copyPropagation.optimizeClass(classToOptimize)) {}
+                while(deadCode.optimizeClass(classToOptimize)) {}
+
+                redundantNullChecks.optimizeClass(classToOptimize);
+                boundsChecks.optimizeClass(classToOptimize);
+            }
         }
     }
 }

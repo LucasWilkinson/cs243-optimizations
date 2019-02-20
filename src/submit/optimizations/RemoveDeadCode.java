@@ -46,6 +46,26 @@ public class RemoveDeadCode extends Optimization {
                     modifiedFlowGraph = true;
                 }
             }
+            else if(quad.getOperator() instanceof Operator.NullCheck
+                    || quad.getOperator() instanceof Operator.BoundsCheck)
+            {   
+                boolean deadCode = true;
+
+                for (RegisterOperand use : quad.getUsedRegisters()) 
+                {
+                    if (!faintVars.isFaint(use.getRegister().toString()))
+                    {
+                        deadCode = false;
+                    }
+                }
+
+                if (deadCode) 
+                {
+                    //System.out.println(quad);
+                    iter.remove();
+                    modifiedFlowGraph = true;
+                }
+            }
         }
     }
 }
