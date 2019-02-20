@@ -42,8 +42,8 @@ public class Optimize {
 
                 //addToSubs.optimizeClass(classToOptimize);
 
-                while(copyPropagation.optimizeClass(classToOptimize)) {}
-                while(deadCode.optimizeClass(classToOptimize)) {}
+                while(copyPropagation.optimizeClass(classToOptimize)
+                    || deadCode.optimizeClass(classToOptimize)) {}
 
                 do {
 
@@ -70,8 +70,8 @@ public class Optimize {
 
                 } while(modified);
 
-                while(copyPropagation.optimizeClass(classToOptimize)) {}
-                while(deadCode.optimizeClass(classToOptimize)) {}
+                while(copyPropagation.optimizeClass(classToOptimize)
+                    || deadCode.optimizeClass(classToOptimize)) {}
 
                 redundantNullChecks.optimizeClass(classToOptimize);
                 boundsChecks.optimizeClass(classToOptimize);

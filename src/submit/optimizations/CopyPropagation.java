@@ -66,10 +66,14 @@ public class CopyPropagation extends Optimization {
                             RegisterOperand src =  (RegisterOperand) Operator.Move.getSrc(copyQuad);
                             RegisterOperand dest = (RegisterOperand) Operator.Move.getDest(copyQuad);
 
-                            for (RegisterOperand op : quad.getUsedRegisters()){
-                                if (op.getRegister().equals(dest.getRegister())){
-                                    op.setRegister(src.getRegister());
-                                    modifiedFlowGraph = true;
+
+                            if (!src.getRegister().equals(dest.getRegister()))
+                            {
+                                for (RegisterOperand op : quad.getUsedRegisters()){
+                                    if (op.getRegister().equals(dest.getRegister())){
+                                        op.setRegister(src.getRegister());
+                                        modifiedFlowGraph = true;
+                                    }
                                 }
                             }
                         }

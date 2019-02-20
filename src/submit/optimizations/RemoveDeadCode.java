@@ -66,6 +66,19 @@ public class RemoveDeadCode extends Optimization {
                     modifiedFlowGraph = true;
                 }
             }
+            else if(quad.getOperator() instanceof Operator.Move
+                && Operator.Move.getSrc(quad) instanceof RegisterOperand
+                && Operator.Move.getDest(quad) instanceof RegisterOperand)
+            {
+                RegisterOperand src =  (RegisterOperand) Operator.Move.getSrc(quad);
+                RegisterOperand dest = (RegisterOperand) Operator.Move.getDest(quad);
+
+                if (src.getRegister().equals(dest.getRegister())) {
+                    System.out.println(quad);
+                    iter.remove();
+                    modifiedFlowGraph = true;
+                }
+            }
         }
     }
 }
