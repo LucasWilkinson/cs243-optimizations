@@ -219,6 +219,8 @@ public class MustReachNullChecks implements Flow.Analysis {
         CheckedRegistersFlowObject val;
         @Override
         public void visitQuad(Quad q) {
+        	    //System.out.println("Visiting Quad:");
+        	    //System.out.println(((Integer)q.getID()).toString());
             for (RegisterOperand def : q.getDefinedRegisters()) {
                 val.killCheck(def.getRegister().toString());
             }

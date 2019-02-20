@@ -78,6 +78,7 @@ public class RemoveGoTos extends Optimization
     				bbs.addPredecessor(modifier);
     			}
 			
+			/*
 	    		Quad lastquad = modifier.getLastQuad();
 	    		Integer lastquadindex = modifier.getQuadIndex(lastquad);
 	    		
@@ -85,6 +86,7 @@ public class RemoveGoTos extends Optimization
 
 	    		modifier.removeQuad(lastquadindex);
 	    		modifier.appendQuad(newlast);
+	    		*/
 	    		
 	    		//change predecessors of bb
     			bbm.removePredecessor(modifier);

@@ -44,11 +44,12 @@ public class Optimize {
 
                 //addToSubs.optimizeClass(classToOptimize);
                 
-                /*
-                while(removeGoTo.optimizeClass(classToOptimize)) {}
-				removeGoTo.optimizeClass(classToOptimize);
-			    Helper.runPass(classToOptimize, new PrintCFG());
-			    */
+                
+                //while(removeGoTo.optimizeClass(classToOptimize)) {}
+				//removeGoTo.optimizeClass(classToOptimize);
+			    //Helper.runPass(classToOptimize, new PrintCFG());
+			    
+			    //while(removeGoTo.optimizeClass(classToOptimize)) {}
 			    
                 while(copyPropagation.optimizeClass(classToOptimize)) {}
                 while(deadCode.optimizeClass(classToOptimize)) {}
@@ -58,11 +59,12 @@ public class Optimize {
                     //System.out.println("**************** Optimization pass *****************");
 
                     modified = false;
-
+					
                     if (pre.optimizeClass(classToOptimize)){
                         //System.out.println("pre modified the graph");
                         modified = true;
                     }
+                    
 
                     if (deadCode.optimizeClass(classToOptimize)){
                         //System.out.println("dead modified the graph");
@@ -75,6 +77,8 @@ public class Optimize {
                     }
                    
                     //Helper.runPass(classToOptimize, new PrintCFG());
+                    
+                    //while(removeGoTo.optimizeClass(classToOptimize)) {}
 
                 } while(modified);
 
@@ -83,9 +87,14 @@ public class Optimize {
                
                 redundantNullChecks.optimizeClass(classToOptimize);
                 boundsChecks.optimizeClass(classToOptimize);
-                
+                                
                 while(removeGoTo.optimizeClass(classToOptimize)) {}
+
+                while(deadCode.optimizeClass(classToOptimize)) {}
                 
+                redundantNullChecks.optimizeClass(classToOptimize);
+                boundsChecks.optimizeClass(classToOptimize);
+                                
                 Helper.runPass(classToOptimize, new PrintCFG());
             }
         }

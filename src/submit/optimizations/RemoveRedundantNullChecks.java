@@ -13,10 +13,14 @@ public class RemoveRedundantNullChecks extends Optimization {
 
     public void visitCFG(ControlFlowGraph cfg) {
 
+		System.out.println("Method: "+cfg.getMethod().getName().toString());
+		System.out.println("Null Checks");
         MySolver solver = new MySolver();
         MustReachNullChecks mustReachNullChecks = new MustReachNullChecks();
         solver.registerAnalysis(mustReachNullChecks);
         solver.visitCFG(cfg);
+        
+        System.out.println("Null Analysis Complete");
 
         QuadIterator iter = new QuadIterator(cfg);
 
