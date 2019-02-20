@@ -14,7 +14,7 @@ public class RemoveGoTos extends Optimization
 {
     public void visitCFG(ControlFlowGraph cfg) 
     {
-    		System.out.println("Method: "+cfg.getMethod().getName().toString());
+    		//System.out.println("Method: "+cfg.getMethod().getName().toString());
 
         QuadIterator iter = new QuadIterator(cfg);
         
@@ -33,7 +33,7 @@ public class RemoveGoTos extends Optimization
 				quadIndex = iter.getCurrentBasicBlock().getQuadIndex(quad);
 				
 				quadID = quad.getID();
-				System.out.println(quadID.toString());
+				//System.out.println(quadID.toString());
 				
 				modified = true;
 				break;
@@ -56,8 +56,10 @@ public class RemoveGoTos extends Optimization
 	    				
 	    				Quad nq = cq.copy(cfg.getNewQuadID());
 	    				
-	    				System.out.println(nq.toString());
+	    				//System.out.println(nq.toString());
 	    				modifier.appendQuad(nq);
+	    				
+	    				quadID = cq.getID();
 	    			}
 	    			
 	    			bbm = bb;
@@ -73,6 +75,7 @@ public class RemoveGoTos extends Optimization
     			for (BasicBlock bbs : bbsucc)
     			{
     				modifier.addSuccessor(bbs);
+    				bbs.addPredecessor(modifier);
     			}
 			
 	    		Quad lastquad = modifier.getLastQuad();
