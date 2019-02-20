@@ -41,7 +41,7 @@ public class RemoveRedundantBoundsChecks extends Optimization {
                     //System.out.println(checkedArrays.toString() + array.toString() + checkedArrays.hasArray(array.toString()));
 
                     if (checkedArrays.hasArray(array.toString())){
-                        System.out.println("Redundant = " + quad);
+                        //System.out.println("Redundant = " + quad);
                         checked = true;
                     }
         		}

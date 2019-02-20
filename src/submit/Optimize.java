@@ -40,37 +40,37 @@ public class Optimize {
 
                 do {
 
-                    System.out.println("**************** Optimization pass *****************");
+                    //System.out.println("**************** Optimization pass *****************");
 
                     modified = false;
 
                     if (constantPropagation.optimizeClass(classToOptimize)){
-                        System.out.println("constant prop modified the graph");
+                        //System.out.println("constant prop modified the graph");
                         modified = true;
                     }
 
                     if (deadCode.optimizeClass(classToOptimize)){
-                        System.out.println("dead modified the graph");
+                        //System.out.println("dead modified the graph");
                         modified = true;
                     }
 
                     if (pre.optimizeClass(classToOptimize)){
-                        System.out.println("pre modified the graph");
+                        //System.out.println("pre modified the graph");
                         modified = true;
                     }
 
                     if (redundantNullChecks.optimizeClass(classToOptimize)){
-                        System.out.println("null checks modified the graph");
+                        //System.out.println("null checks modified the graph");
                         modified = true;
                     }
 
                     if (copyPropagation.optimizeClass(classToOptimize)){
-                        System.out.println("copy prop modified the graph");
+                        //System.out.println("copy prop modified the graph");
                         modified = true;
                     }
                     
                     if (boundsChecks.optimizeClass(classToOptimize)){
-                        System.out.println("bounds checks modified the graph");
+                        //System.out.println("bounds checks modified the graph");
                     	modified = true;
                     }
                    
@@ -79,7 +79,7 @@ public class Optimize {
                 } while(modified);
             }
 
-            Helper.runPass(classToOptimize, new PrintCFG());
+            //Helper.runPass(classToOptimize, new PrintCFG());
         }
     }
 }
