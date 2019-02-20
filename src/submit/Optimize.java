@@ -13,6 +13,7 @@ import submit.optimizations.PartialRedundancyElimination;
 import submit.optimizations.Optimization;
 import submit.optimizations.ConstantPropagation;
 import submit.optimizations.AddsToSubs;
+import submit.optimizations.RemoveGoTos;
 
 public class Optimize {
     /*
@@ -39,6 +40,7 @@ public class Optimize {
                 Optimization constantPropagation = new ConstantPropagation();
                 Optimization boundsChecks = new RemoveRedundantBoundsChecks();
                 Optimization addToSubs = new AddsToSubs();
+                Optimization removeGoTo = new RemoveGoTos();
 
                 //addToSubs.optimizeClass(classToOptimize);
 
@@ -72,6 +74,17 @@ public class Optimize {
 
                 while(copyPropagation.optimizeClass(classToOptimize)) {}
                 while(deadCode.optimizeClass(classToOptimize)) {}
+                
+                //while(removeGoTo.optimizeClass(classToOptimize)) {}
+                
+                removeGoTo.optimizeClass(classToOptimize);
+                removeGoTo.optimizeClass(classToOptimize);
+                removeGoTo.optimizeClass(classToOptimize);
+                removeGoTo.optimizeClass(classToOptimize);
+                //removeGoTo.optimizeClass(classToOptimize);
+                //removeGoTo.optimizeClass(classToOptimize);
+                //removeGoTo.optimizeClass(classToOptimize);
+                Helper.runPass(classToOptimize, new PrintCFG());
 
                 redundantNullChecks.optimizeClass(classToOptimize);
                 boundsChecks.optimizeClass(classToOptimize);
