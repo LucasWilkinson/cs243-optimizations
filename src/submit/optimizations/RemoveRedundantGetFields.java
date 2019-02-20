@@ -64,7 +64,7 @@ public class RemoveRedundantGetFields extends Optimization {
                             int index = qit.getCurrentBasicBlock().getQuadIndex(quad);
                             qit.getCurrentBasicBlock().replaceQuad(index, copyTemp);
 
-                            System.out.println(getQuad.toString() + " : " + quad.toString() + " -> " + copyTemp.toString());
+                            //System.out.println(getQuad.toString() + " : " + quad.toString() + " -> " + copyTemp.toString());
                         //}
 
                         modifiedFlowGraph = true;

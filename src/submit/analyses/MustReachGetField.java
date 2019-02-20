@@ -189,14 +189,14 @@ public class MustReachGetField implements Flow.Analysis {
      * @param cfg  Unused.
      */
     public void postprocess (ControlFlowGraph cfg) {
-        System.out.println("entry: " + entry.toString());
-        for (int i=1; i<in.length; i++) {
-            if (in[i] != null) {
-                System.out.println(i + " in:  " + in[i].toString());
-                System.out.println(i + " out: " + out[i].toString());
-            }
-        }
-        System.out.println("exit: " + exit.toString());
+        //System.out.println("entry: " + entry.toString());
+        //for (int i=1; i<in.length; i++) {
+        //    if (in[i] != null) {
+        //        System.out.println(i + " in:  " + in[i].toString());
+        //        System.out.println(i + " out: " + out[i].toString());
+        //    }
+        //}
+        //System.out.println("exit: " + exit.toString());
     }
 
     /**

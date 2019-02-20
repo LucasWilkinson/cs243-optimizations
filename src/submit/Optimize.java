@@ -49,8 +49,6 @@ public class Optimize {
 
                 getFields.optimizeClass(classToOptimize);
 
-                Helper.runPass(classToOptimize, new PrintCFG());
-
                 while(copyPropagation.optimizeClass(classToOptimize)
                     || deadCode.optimizeClass(classToOptimize)) {}
 
@@ -82,6 +80,7 @@ public class Optimize {
 
                 redundantNullChecks.optimizeClass(classToOptimize);
                 boundsChecks.optimizeClass(classToOptimize);
+
             }
         }
     }

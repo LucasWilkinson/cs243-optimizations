@@ -245,6 +245,7 @@ public class PartialRedundancyElimination extends Optimization {
 
         List<BasicBlock> bbToAddTo = new Vector<BasicBlock>();
         List<Quad>       quadToAdd = new Vector<Quad>();
+        List<Quad>       quadToAddAbove = new Vector<Quad>();
 
         int maxBeforeAddingTemps = cfg.getMaxQuadID();
 
@@ -274,17 +275,19 @@ public class PartialRedundancyElimination extends Optimization {
 
                     RegisterOperand tempReg = (RegisterOperand) stringToOperand.get(expr).copy();
 
+                    //System.out.println(q);
+
                     if (newTemp.getOperator() instanceof Operator.Unary) {
                         Operator.Unary.setDest(newTemp, tempReg);
                     } else {
                         Operator.Binary.setDest(newTemp, tempReg);
                     }
 
-                    //System.out.println(tempReg);
-                    //System.out.println(newTemp);
+                    //System.out.println(" -> " + newTemp);
 
                     bbToAddTo.add(qit.getCurrentBasicBlock());
                     quadToAdd.add(newTemp);
+                    quadToAddAbove.add(q);
                 }
 
                 //System.out.println(placementSet);
@@ -294,7 +297,9 @@ public class PartialRedundancyElimination extends Optimization {
         for (int i = 0; i < bbToAddTo.size(); i++){
 
             //System.out.println(quadToAdd.get(i));
-            bbToAddTo.get(i).addQuad(0, quadToAdd.get(i)); 
+            BasicBlock bb = bbToAddTo.get(i);
+            int index = bb.getQuadIndex(quadToAddAbove.get(i));
+            bb.addQuad(index, quadToAdd.get(i)); 
             modifiedFlowGraph = true;
             modified = true;
         }
@@ -302,6 +307,7 @@ public class PartialRedundancyElimination extends Optimization {
         /*
          *  Replace uses
          */ 
+
 
         qit = new QuadIterator(cfg);
         while (qit.hasNext())
@@ -348,7 +354,7 @@ public class PartialRedundancyElimination extends Optimization {
                 int index = qit.getCurrentBasicBlock().getQuadIndex(q);
                 qit.getCurrentBasicBlock().replaceQuad(index, copyTemp);
 
-               // System.out.println(q);
+                //System.out.println(q + " -> " + copyTemp);
             }
         }
 
