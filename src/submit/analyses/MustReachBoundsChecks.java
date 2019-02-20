@@ -53,6 +53,11 @@ public class MustReachBoundsChecks implements Flow.Analysis {
        {
        		return set.contains(s);
        }
+       
+        public String toString()
+        {
+            return set.toString();
+        }
     }
 
     public static class CheckerSet implements Flow.DataflowObject {
@@ -78,15 +83,15 @@ public class MustReachBoundsChecks implements Flow.Analysis {
 
         public void setToTop() 
         {
-            for (String key : core) {
-                map.get(key).setToTop();
+           for (CheckedArraySet lattice : map.values()) {
+                lattice.setToTop();
             }
         }
 
         public void setToBottom() 
         {
-            for (String key : core) {
-                map.get(key).setToBottom();
+           for (CheckedArraySet lattice : map.values()) {
+                lattice.setToBottom();
             }
         }
 
@@ -153,7 +158,7 @@ public class MustReachBoundsChecks implements Flow.Analysis {
 
 		public void killChecker(String key) 
 		{
-			get(key).setToTop();
+			get(key).setToBottom();
 		}
        
         @Override
@@ -168,7 +173,7 @@ public class MustReachBoundsChecks implements Flow.Analysis {
     private CheckerSet entry, exit;
  
     public void preprocess (ControlFlowGraph cfg) {
-        //System.out.println("Method: "+cfg.getMethod().getName().toString());
+        System.out.println("Method: "+cfg.getMethod().getName().toString());
         /* Generate initial conditions. */
         QuadIterator qit = new QuadIterator(cfg);
         int max = 0;
@@ -201,12 +206,14 @@ public class MustReachBoundsChecks implements Flow.Analysis {
             		{
             			RegisterOperand regdef = (RegisterOperand) def;
             			CheckerSet.register(regdef.getRegister().toString());
+            			s.add(regdef.getRegister().toString());
             		}
             		else if(def instanceof IConstOperand)
             		{
             			IConstOperand constdef = (IConstOperand) def;
             			Integer c = constdef.getValue();
             			CheckerSet.register(c.toString());
+            			s.add(c.toString());
             		}
             		else if(def instanceof AConstOperand)
             		{
@@ -233,6 +240,10 @@ public class MustReachBoundsChecks implements Flow.Analysis {
             in[i] = new CheckerSet();
             out[i] = new CheckerSet();
         }
+        
+        System.out.println(entry.toString());
+        entry.setToBottom();
+        System.out.println(entry.toString());
         
         //System.out.println("Initialization completed.");
     }

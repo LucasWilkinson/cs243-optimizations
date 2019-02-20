@@ -70,7 +70,7 @@ public class Optimize {
                 copyPropagation.optimizeClass(classToOptimize);
             }
 
-            //Helper.runPass(classToOptimize, new PrintCFG());
+            Helper.runPass(classToOptimize, new PrintCFG());
         }
     }
 }
