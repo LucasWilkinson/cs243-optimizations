@@ -226,14 +226,6 @@ public class AnticipatedExpressions implements Flow.Analysis {
         in[q.getID()].copy(value);
     }
     public void setOut(Quad q, Flow.DataflowObject value) {
-        if (q == null){
-            System.out.println("Quad " + q);
-        }
-
-        if (out[q.getID()] == null){
-            System.out.println("out[q] " + out[q.getID()] + " id " + q.getID());
-        }
-
         out[q.getID()].copy(value); 
     }
     public Flow.DataflowObject newTempVar() { return new AnticipatedSet(); }

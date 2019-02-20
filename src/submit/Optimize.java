@@ -14,6 +14,7 @@ import submit.optimizations.Optimization;
 import submit.optimizations.ConstantPropagation;
 import submit.optimizations.AddsToSubs;
 import submit.optimizations.RemoveRedundantGetFields;
+import submit.optimizations.RemoveGoTos;
 
 public class Optimize {
     /*
@@ -41,6 +42,7 @@ public class Optimize {
                 Optimization boundsChecks = new RemoveRedundantBoundsChecks();
                 Optimization addToSubs = new AddsToSubs();
                 Optimization getFields = new RemoveRedundantGetFields();
+                Optimization removeGoTo = new RemoveGoTos();
 
                 //addToSubs.optimizeClass(classToOptimize);
 
@@ -52,17 +54,21 @@ public class Optimize {
                 while(copyPropagation.optimizeClass(classToOptimize)
                     || deadCode.optimizeClass(classToOptimize)) {}
 
+                
+
+                //addToSubs.optimizeClass(classToOptimize);
+
                 do {
 
                     //System.out.println("**************** Optimization pass *****************");
 
                     modified = false;
-
+					
                     if (pre.optimizeClass(classToOptimize)){
                         //System.out.println("pre modified the graph");
                         modified = true;
                     }
-
+                    
                     if (copyPropagation.optimizeClass(classToOptimize)){
                         //System.out.println("copy prop modified the graph");
                         modified = true;
@@ -77,10 +83,13 @@ public class Optimize {
 
                 while(copyPropagation.optimizeClass(classToOptimize)
                     || deadCode.optimizeClass(classToOptimize)) {}
+               
+                while(removeGoTo.optimizeClass(classToOptimize)) {}
 
                 redundantNullChecks.optimizeClass(classToOptimize);
-                boundsChecks.optimizeClass(classToOptimize);
+                boundsChecks.optimizeClass(classToOptimize);                
 
+                //Helper.runPass(classToOptimize, new PrintCFG());
             }
         }
     }
