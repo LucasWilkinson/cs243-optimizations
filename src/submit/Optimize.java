@@ -40,7 +40,7 @@ public class Optimize {
                 Optimization boundsChecks = new RemoveRedundantBoundsChecks();
                 Optimization addToSubs = new AddsToSubs();
 
-                addToSubs.optimizeClass(classToOptimize);
+                //addToSubs.optimizeClass(classToOptimize);
 
                 while(copyPropagation.optimizeClass(classToOptimize)) {}
                 while(deadCode.optimizeClass(classToOptimize)) {}
