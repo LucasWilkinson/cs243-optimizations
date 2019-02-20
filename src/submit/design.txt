@@ -1,3 +1,12 @@
 Describe your design for extra credit in this file.
 
 Give a high level description on each of your optimization techniques. We don't expect too much details. Usually less than 5 sentences should be enough to describe each optimization. But make sure we understand what you are doing.
+
+
+Optimizations Used:
+
+Partial Redundancy Elimination: PRE implemented as seen in class. Four analyzers were written: anticipated Expressions, available expressions, postponable expressions and used exceptions. To pre process the graph basic blocks are added with NOP commands on all edges leading to a node with multiple predecessors. To post-process the graph all NOPs are removed (if this leaves a basic block empty it is removed and the edges are restored) 
+
+Copy Propagation: From textbook section 9.1.5. If a copy u = v reaches a use of u along all paths replace the use of u with v. This is done using a "must reach copies" analysis which uses a meet operator of intersection, a gen set of move operations in a quad and any definition of either u or v will kill the copy.
+
+Remove Redundant Get Fields: Remove any redundant GetField calls and replace with a copy (which can later be eliminated using copy propagation and dead code elimination. A GetField call is available at program point p if it exist along all paths to program p and the destination register isn't modified (invoke instructions will also cancel availability to be conservative incase the invoked method modifies the field). A GetField call is redundant if a get field call is available that has the same base and field. Redundant GetFields are replaced with a copy of the available GetField's destination to the redundant GetField's destination.
