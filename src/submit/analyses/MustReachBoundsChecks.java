@@ -173,7 +173,7 @@ public class MustReachBoundsChecks implements Flow.Analysis {
     private CheckerSet entry, exit;
  
     public void preprocess (ControlFlowGraph cfg) {
-        System.out.println("Method: "+cfg.getMethod().getName().toString());
+        //System.out.println("Method: "+cfg.getMethod().getName().toString());
         /* Generate initial conditions. */
         QuadIterator qit = new QuadIterator(cfg);
         int max = 0;
@@ -241,9 +241,9 @@ public class MustReachBoundsChecks implements Flow.Analysis {
             out[i] = new CheckerSet();
         }
         
-        System.out.println(entry.toString());
+        //System.out.println(entry.toString());
         entry.setToBottom();
-        System.out.println(entry.toString());
+        //System.out.println(entry.toString());
         
         //System.out.println("Initialization completed.");
     }
