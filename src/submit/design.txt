@@ -10,3 +10,28 @@ Partial Redundancy Elimination: PRE implemented as seen in class. Four analyzers
 Copy Propagation: From textbook section 9.1.5. If a copy u = v reaches a use of u along all paths replace the use of u with v. This is done using a "must reach copies" analysis which uses a meet operator of intersection, a gen set of move operations in a quad and any definition of either u or v will kill the copy.
 
 Remove Redundant Get Fields: Remove any redundant GetField calls and replace with a copy (which can later be eliminated using copy propagation and dead code elimination. A GetField call is available at program point p if it exist along all paths to program p and the destination register isn't modified (invoke instructions will also cancel availability to be conservative incase the invoked method modifies the field). A GetField call is redundant if a get field call is available that has the same base and field. Redundant GetFields are replaced with a copy of the available GetField's destination to the redundant GetField's destination.
+
+RemoveRedundantNullChecks:
+
+For this optimization, we use a data flow analysis to find the Null checks in the code that are redundant.  To do this,
+we track all previously checked null statements.  We assume that if a null check has passed from all possible paths, then it
+is redundant and can be deleted.  
+
+RemoveRedundantBoundsChecks:
+
+For this optimization, we use a data flow analysis to find array bounds checks that are redundant.  To do this, 
+we use all the array indexes as keys(whether they are registers or constants), and then track all arrays to which 
+they have already been checked against.  We only kill the check if the array is resized or if the index is changed.
+Then, in postprocessing, for each bounds check, we see if this bounds check is in our 'checked' set in the IN of each 
+Quad.  If so, we delete the bounds check quad.
+
+RemoveDeadCode:
+
+For this optimization, we use the Faintness analysis from HW2 to figure out all the faint variables in the cfg for each Quad.
+After the analysis is complete, we then loop through all the quads and delete the ones that define variables that are faint.
+
+RemoveGoTos:
+
+For this optimization, we use the fact that the test is optimizing for 'quads run' and so replace all GoTo statements with the 
+quads of their successive basic block.  We then modify the successors and predecessors of all basic blocks involved to maintain 
+control flow parity.  This balloons the size of the code, but allows quite a reduction of 'quads run'.
