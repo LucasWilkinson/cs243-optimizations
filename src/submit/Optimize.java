@@ -13,6 +13,7 @@ import submit.optimizations.PartialRedundancyElimination;
 import submit.optimizations.Optimization;
 import submit.optimizations.ConstantPropagation;
 import submit.optimizations.AddsToSubs;
+import submit.optimizations.RemoveRedundantGetFields;
 
 public class Optimize {
     /*
@@ -39,11 +40,19 @@ public class Optimize {
                 Optimization constantPropagation = new ConstantPropagation();
                 Optimization boundsChecks = new RemoveRedundantBoundsChecks();
                 Optimization addToSubs = new AddsToSubs();
+                Optimization getFields = new RemoveRedundantGetFields();
 
                 //addToSubs.optimizeClass(classToOptimize);
 
-                while(copyPropagation.optimizeClass(classToOptimize)) {}
-                while(deadCode.optimizeClass(classToOptimize)) {}
+                while(copyPropagation.optimizeClass(classToOptimize)
+                    || deadCode.optimizeClass(classToOptimize)) {}
+
+                getFields.optimizeClass(classToOptimize);
+
+                Helper.runPass(classToOptimize, new PrintCFG());
+
+                while(copyPropagation.optimizeClass(classToOptimize)
+                    || deadCode.optimizeClass(classToOptimize)) {}
 
                 do {
 
@@ -56,22 +65,20 @@ public class Optimize {
                         modified = true;
                     }
 
+                    if (copyPropagation.optimizeClass(classToOptimize)){
+                        //System.out.println("copy prop modified the graph");
+                        modified = true;
+                    }
+
                     if (deadCode.optimizeClass(classToOptimize)){
                         //System.out.println("dead modified the graph");
                         modified = true;
                     }
 
-                    if (copyPropagation.optimizeClass(classToOptimize)){
-                        //System.out.println("copy prop modified the graph");
-                        modified = true;
-                    }
-                   
-                    //Helper.runPass(classToOptimize, new PrintCFG());
-
                 } while(modified);
 
-                while(copyPropagation.optimizeClass(classToOptimize)) {}
-                while(deadCode.optimizeClass(classToOptimize)) {}
+                while(copyPropagation.optimizeClass(classToOptimize)
+                    || deadCode.optimizeClass(classToOptimize)) {}
 
                 redundantNullChecks.optimizeClass(classToOptimize);
                 boundsChecks.optimizeClass(classToOptimize);

@@ -58,21 +58,30 @@ public class CopyPropagation extends Optimization {
                 Set<Integer> copySet = copies.get(key);
                 
                 if (copySet != null){
+
                     Set<Integer> optimizableCopies = reachingCopies.intersection(copySet);
                     if (optimizableCopies.size() == 1){
+                        //System.out.println(quad);
                         for (Integer copy : optimizableCopies){
                             Quad copyQuad = quadLookup.get(copy);
                             
-                            RegisterOperand src =  (RegisterOperand) Operator.Move.getSrc(copyQuad);
-                            RegisterOperand dest = (RegisterOperand) Operator.Move.getDest(copyQuad);
+                            //System.out.println(copyQuad);
 
-                            for (RegisterOperand op : quad.getUsedRegisters()){
-                                if (op.getRegister().equals(dest.getRegister())){
-                                    op.setRegister(src.getRegister());
-                                    modifiedFlowGraph = true;
+                            RegisterOperand src =  (RegisterOperand) Operator.Move.getSrc(copyQuad).copy();
+                            RegisterOperand dest = (RegisterOperand) Operator.Move.getDest(copyQuad).copy();
+
+                            if (!src.getRegister().equals(dest.getRegister()))
+                            {
+                                for (RegisterOperand op : quad.getUsedRegisters()){
+                                    if (op.getRegister().equals(dest.getRegister())){
+                                        op.setRegister(src.getRegister());
+                                        modifiedFlowGraph = true;
+                                    }
                                 }
                             }
                         }
+                        //System.out.println(quad);
+
                     }else if(optimizableCopies.size() > 1){
                         throw new RuntimeException("Too many optomizable copies");
                     }   

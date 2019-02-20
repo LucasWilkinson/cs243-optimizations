@@ -1,25 +1,33 @@
 package submit.analyses;
 
+// some useful things to import. add any additional imports you need.
 import joeq.Compiler.Quad.*;
 import flow.Flow;
 import java.util.*;
 import joeq.Compiler.Quad.Operand.RegisterOperand;
-
-public class MustReachCopies implements Flow.Analysis {
+/**
+ * Skeleton class for implementing a reaching definition analysis
+ * using the Flow.Analysis interface.
+ */
+public class MustReachGetField implements Flow.Analysis {
 
     /**
      * Class for the dataflow objects in the ReachingDefs analysis.
      * You are free to change this class or move it to another file.
      */
+    /**
+     * Class for the dataflow objects in the ReachingDefs analysis.
+     * You are free to change this class or move it to another file.
+     */
     public static Set<Integer> universalSet = new TreeSet<Integer>();
-    public class MustReachCopyFlowObject implements Flow.DataflowObject {
+    public class GetfieldSet implements Flow.DataflowObject {
         private Set<Integer> set;
         /**
          * Methods from the Flow.DataflowObject interface.
          * See Flow.java for the meaning of these methods.
          * These need to be filled in.
          */
-        public MustReachCopyFlowObject()
+        public GetfieldSet()
         {
             set = new TreeSet<Integer>(universalSet);
         }
@@ -37,18 +45,19 @@ public class MustReachCopies implements Flow.Analysis {
          */
         public void meetWith(Flow.DataflowObject o) 
         {
-            MustReachCopyFlowObject t = (MustReachCopyFlowObject)o;
+            GetfieldSet t = (GetfieldSet)o;
             this.set.retainAll(t.set);
         }
         public void copy(Flow.DataflowObject o) 
         {
-            MustReachCopyFlowObject t = (MustReachCopyFlowObject)o;
+            GetfieldSet t = (GetfieldSet)o;
             set = new TreeSet<Integer>(t.set);
         }
 
         /**
          * To be used by optomization 
          */ 
+
         public Set<Integer> getSet()
         {   
             return new TreeSet<Integer>(set);
@@ -64,9 +73,9 @@ public class MustReachCopies implements Flow.Analysis {
         @Override
         public boolean equals(Object o) 
         {
-            if (o instanceof MustReachCopyFlowObject) 
+            if (o instanceof GetfieldSet) 
             {
-                MustReachCopyFlowObject a = (MustReachCopyFlowObject) o;
+                GetfieldSet a = (GetfieldSet) o;
                 return set.equals(a.set);
             }
             return false;
@@ -75,7 +84,6 @@ public class MustReachCopies implements Flow.Analysis {
         public int hashCode() {
             return set.hashCode();
         }
-
         /**
          * toString() method for the dataflow objects which is used
          * by postprocess() below.  The format of this method must
@@ -87,9 +95,9 @@ public class MustReachCopies implements Flow.Analysis {
          */
         @Override
         public String toString() { return set.toString(); }
-        public void genCopy(Integer copy) { set.add(copy); }
-        public void killCopy(Integer copy) { set.remove(copy); }
-        public void killCopies(Set<Integer> copies) { set.removeAll(copies); }
+        public void genGetfield(Integer gf) { set.add(gf); }
+        public void killGetfield(Integer gf) { set.remove(gf); }
+        public void killGetfields(Set<Integer> gf) { set.removeAll(gf); }
     }
 
     /**
@@ -100,14 +108,22 @@ public class MustReachCopies implements Flow.Analysis {
      * You are free to modify these fields, just make sure to
      * preserve the data printed by postprocess(), which relies on these.
      */
-    private MustReachCopyFlowObject[] in, out;
-    private MustReachCopyFlowObject entry, exit;
+    private GetfieldSet[] in, out;
+    private GetfieldSet entry, exit;
     private static HashMap<String, TreeSet<Integer>> killSets;
 
-    public static boolean isValidCopy(Quad q){
-        return q.getOperator() instanceof Operator.Move 
-            && Operator.Move.getSrc(q) instanceof RegisterOperand
-            && Operator.Move.getDest(q) instanceof RegisterOperand;
+    public static boolean isGetField(Quad q) {
+        return (q.getOperator() instanceof Operator.Getfield);
+    }
+
+    public static String getFieldString(Quad q) {
+        if (isGetField(q)) {
+            return q.getOperator().toString() 
+                + Operator.Getfield.getBase(q).toString()
+                + Operator.Getfield.getField(q).toString();
+        } else {
+            throw new RuntimeException("Invalid getfield quad");
+        }
     }
 
     /**
@@ -117,69 +133,50 @@ public class MustReachCopies implements Flow.Analysis {
      */
     public void preprocess(ControlFlowGraph cfg) {
         // this line must come first.
-        // System.out.println("Method: "+cfg.getMethod().getName().toString());
-
-        // Build the universal set and kill sets
+        //System.out.println("Method: "+cfg.getMethod().getName().toString());
         killSets = new HashMap<String, TreeSet<Integer> >();
+
+        // allocate the in and out arrays.
+        in = new GetfieldSet[cfg.getMaxQuadID() + 1];
+        out = new GetfieldSet[cfg.getMaxQuadID() + 1];
+
+        // initialize the contents of in and out.
         QuadIterator qit = new QuadIterator(cfg);
+        while (qit.hasNext()) {
+            int id = qit.next().getID();
+            in[id] = new GetfieldSet();
+            out[id] = new GetfieldSet();
+        }
+
+        qit = new QuadIterator(cfg);
         while (qit.hasNext())
         {
             Quad q = (Quad)qit.next();
-            int id = q.getID();
 
-            if (isValidCopy(q)) {
+            if (isGetField(q)){
+                String fieldString = getFieldString(q);
 
-                universalSet.add(id);
+                universalSet.add(q.getID());
 
-                for (RegisterOperand def : q.getUsedRegisters()) 
-                {
-                    String key = def.getRegister().toString();
-                    if(killSets.get(key) == null)  killSets.put(key, new TreeSet<Integer>());
-                    TreeSet<Integer> killSet = killSets.get(key);
-                    killSet.add(id);
-                    killSets.put(key, killSet);
-                }
+                String key = Operator.Getfield.getBase(q).toString();
+                if(killSets.get(key) == null)  killSets.put(key, new TreeSet<Integer>());
+                TreeSet<Integer> killSet = killSets.get(key);
+                killSet.add(q.getID());
 
-                for (RegisterOperand def : q.getDefinedRegisters()) 
-                {
-                    String key = def.getRegister().toString();
-                    if(killSets.get(key) == null)  killSets.put(key, new TreeSet<Integer>());
-                    TreeSet<Integer> killSet = killSets.get(key);
-                    killSet.add(id);
-                    killSets.put(key, killSet);
-                }
+                key = Operator.Getfield.getDest(q).toString();
+                if(killSets.get(key) == null)  killSets.put(key, new TreeSet<Integer>());
+                killSet = killSets.get(key);
+                killSet.add(q.getID());
             }
         }
-
-        // get the amount of space we need to allocate for the in/out arrays.
-        qit = new QuadIterator(cfg);
-        int max = 0;
-        while (qit.hasNext()) {
-            int id = qit.next().getID();
-            if (id > max) 
-                max = id;
-        }
-        max += 1;
-
-        // allocate the in and out arrays.
-        in = new MustReachCopyFlowObject[max];
-        out = new MustReachCopyFlowObject[max];
-
-        // initialize the contents of in and out.
-        qit = new QuadIterator(cfg);
-        while (qit.hasNext()) {
-            int id = qit.next().getID();
-            in[id] = new MustReachCopyFlowObject();
-            out[id] = new MustReachCopyFlowObject();
-        }
-
-        // initialize the entry and exit points.
-        transferfn.val = new MustReachCopyFlowObject();
         
-        entry = new MustReachCopyFlowObject();
-        exit = new MustReachCopyFlowObject();
+        // initialize the entry and exit points.
+        transferfn.val = new GetfieldSet();
+        entry = new GetfieldSet();
+        exit = new GetfieldSet();
 
-        entry.setToBottom(); // Boundary condition
+        // Set boundary condition
+        entry.setToBottom(); 
     }
 
     /**
@@ -192,14 +189,14 @@ public class MustReachCopies implements Flow.Analysis {
      * @param cfg  Unused.
      */
     public void postprocess (ControlFlowGraph cfg) {
-        //System.out.println("entry: " + entry.toString());
-        //for (int i=1; i<in.length; i++) {
-        //    if (in[i] != null) {
-        //        System.out.println(i + " in:  " + in[i].toString());
-        //        System.out.println(i + " out: " + out[i].toString());
-        //    }
-        //}
-        //System.out.println("exit: " + exit.toString());
+        System.out.println("entry: " + entry.toString());
+        for (int i=1; i<in.length; i++) {
+            if (in[i] != null) {
+                System.out.println(i + " in:  " + in[i].toString());
+                System.out.println(i + " out: " + out[i].toString());
+            }
+        }
+        System.out.println("exit: " + exit.toString());
     }
 
     /**
@@ -239,9 +236,17 @@ public class MustReachCopies implements Flow.Analysis {
         in[q.getID()].copy(value);
     }
     public void setOut(Quad q, Flow.DataflowObject value) {
+        if (q == null){
+            System.out.println("Quad " + q);
+        }
+
+        if (out[q.getID()] == null){
+            System.out.println("out[q] " + out[q.getID()] + " id " + q.getID());
+        }
+
         out[q.getID()].copy(value); 
     }
-    public Flow.DataflowObject newTempVar() { return new MustReachCopyFlowObject(); }
+    public Flow.DataflowObject newTempVar() { return new GetfieldSet(); }
 
     private TransferFunction transferfn = new TransferFunction ();
     public void processQuad(Quad q) {
@@ -252,19 +257,26 @@ public class MustReachCopies implements Flow.Analysis {
     
     /* The QuadVisitor that actually does the computation */
     public static class TransferFunction extends QuadVisitor.EmptyVisitor {
-        MustReachCopyFlowObject val;
+        GetfieldSet val;
         @Override
         public void visitQuad(Quad q) {
 
-            for (RegisterOperand def : q.getDefinedRegisters()) {
-                Set<Integer> killSet = killSets.get(def.getRegister().toString());
-                if (killSet != null) {
-                    val.killCopies(killSet);
+            if (q.getDefinedRegisters() != null)
+            {
+                for (RegisterOperand def : q.getDefinedRegisters()) 
+                {
+                    String key = def.toString();
+                    Set<Integer> killSet = killSets.get(key);
+                    if (killSet != null){
+                        val.killGetfields(killSet);
+                    }
                 }
             }
 
-            if (isValidCopy(q)){
-                val.genCopy(q.getID()); // Ignore const in this analysis
+            if (isGetField(q)) {
+                val.genGetfield(q.getID());
+            }else if(q.getOperator() instanceof Operator.Invoke){
+                val.setToBottom();
             }
         }
     }
