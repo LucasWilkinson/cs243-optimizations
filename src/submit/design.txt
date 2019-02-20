@@ -4,14 +4,28 @@ Give a high level description on each of your optimization techniques. We don't 
 
 RemoveRedundantNullChecks:
 
+For this optimization, we use a data flow analysis to find the Null checks in the code that are redundant.  To do this,
+we track all previously checked null statements.  We assume that if any quad 
+
 RemoveRedundantBoundsChecks:
+
+For this optimization, we use a data flow analysis to find array bounds checks that are redundant.  To do this, 
+we use all the array indexes as keys(whether they are registers or constants), and then track all arrays to which 
+they have already been checked against.  We only kill the check if the array is resized or if the index is changed.
+Then, in postprocessing, for each bounds check, we see if this bounds check is in our 'checked' set in the IN of each 
+Quad.  If so, we delete the bounds check quad.
 
 RemoveDeadCode:
 
+For this optimization, we use the Faintness analysis from HW2 to figure out all the faint variables in the cfg for each Quad.
+After the analysis is complete, we then loop through all the quads and delete the ones that define variables that are faint.
+
 RemoveGoTos:
+
+For this optimization, we use the fact that the test is optimizing for 'quads run' and so replace all GoTo statements with the 
+quads of their successive basic block.  We then modify the successors and predecessors of all basic blocks involved to maintain 
+control flow parity.  This balloons the size of the code, but allows quite a reduction of 'quads run'.
 
 PartialRedundancyElimination:
 
 CopyPropagation:
-
-ConstantPropagation:
