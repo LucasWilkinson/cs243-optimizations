@@ -77,16 +77,6 @@ public class RemoveGoTos extends Optimization
     				modifier.addSuccessor(bbs);
     				bbs.addPredecessor(modifier);
     			}
-			
-			/*
-	    		Quad lastquad = modifier.getLastQuad();
-	    		Integer lastquadindex = modifier.getQuadIndex(lastquad);
-	    		
-	    		Quad newlast = lastquad.copy(quadID);
-
-	    		modifier.removeQuad(lastquadindex);
-	    		modifier.appendQuad(newlast);
-	    		*/
 	    		
 	    		//change predecessors of bb
     			bbm.removePredecessor(modifier);
